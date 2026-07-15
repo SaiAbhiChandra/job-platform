@@ -9,30 +9,27 @@ function Jobs() {
   const [company, setCompany] = useState('airbnb');
   const [source, setSource] = useState('greenhouse');
 
-  const fetchJobs = async () => {
-    setLoading(true);
-    try {
-      let url = '';
-      if (source === 'greenhouse') {
-        url = `https://job-platform-production-ad1a.up.railway.app/api/jobs/greenhouse?company=${company}`;
-      } else if (source === 'jsearch') {
-        url = `https://job-platform-production-ad1a.up.railway.app/api/jobs/jsearch?keyword=${keyword}`;
-      }
-
-      const res = await axios.get(url);
-      if (res.data.success) {
-        setJobs(res.data.jobs);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
+    const fetchJobs = async () => {
+      setLoading(true);
+      try {
+        let url = '';
+        if (source === 'greenhouse') {
+          url = `https://job-platform-production-ad1a.up.railway.app/api/jobs/greenhouse?company=${company}`;
+        } else if (source === 'jsearch') {
+          url = `https://job-platform-production-ad1a.up.railway.app/api/jobs/jsearch?keyword=${keyword}`;
+        }
+        const res = await axios.get(url);
+        if (res.data.success) {
+          setJobs(res.data.jobs);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      setLoading(false);
+    };
     fetchJobs();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [source, company, keyword]);
 
   return (
     <div style={styles.container}>
@@ -62,7 +59,17 @@ function Jobs() {
           />
         )}
 
-        <button style={styles.btn} onClick={fetchJobs}>
+        <button style={styles.btn} onClick={() => {
+  setJobs([]);
+  setLoading(true);
+  const url = source === 'greenhouse'
+    ? `https://job-platform-production-ad1a.up.railway.app/api/jobs/greenhouse?company=${company}`
+    : `https://job-platform-production-ad1a.up.railway.app/api/jobs/jsearch?keyword=${keyword}`;
+  axios.get(url).then(res => {
+    if (res.data.success) setJobs(res.data.jobs);
+    setLoading(false);
+  }).catch(() => setLoading(false));
+}}>
           Search Jobs
         </button>
       </div>
