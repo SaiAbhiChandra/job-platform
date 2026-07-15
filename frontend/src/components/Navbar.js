@@ -10,7 +10,7 @@ function Navbar() {
         <Link to="/jobs" style={styles.link}>Browse Jobs</Link>
         <a href="#companies" style={styles.link}>Companies</a>
         <button style={styles.btnOutline}>Log in</button>
-        <button style={styles.btnPrimary} onClick={() => navigate('/jobs')}>
+        <button style={styles.btnPrimary} onClick={() => navigate('/auth')}>
           Sign up free
         </button>
       </div>
