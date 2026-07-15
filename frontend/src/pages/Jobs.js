@@ -12,7 +12,7 @@ const COMPANIES = [
 function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [keyword, setKeyword] = useState('software engineer');
+  const [keyword] = useState('software engineer');
   const [company, setCompany] = useState('airbnb');
   const [source, setSource] = useState('greenhouse');
   const [filter, setFilter] = useState('All');
