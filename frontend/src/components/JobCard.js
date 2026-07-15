@@ -35,7 +35,7 @@ function JobCard({ job }) {
         )}
         {job.salary_min && job.salary_min !== 'Not disclosed' && (
           <span style={styles.metaItem}>
-            💰 {job.salary_min} – {job.salary_max}
+            💰 {job.salary_min}
           </span>
         )}
         {job.posted_date && (
@@ -54,16 +54,16 @@ function JobCard({ job }) {
 
       <div style={styles.bottom}>
         <div style={styles.actions}>
-          
-            href={job.apply_url}
-            target="_blank"
-            rel="noreferrer"
-            style={styles.applyBtn}
-          >
-            Apply Now →
-          </a>
-          <button style={styles.saveBtn}>🔖 Save</button>
-        </div>
+        <a
+          href={job.apply_url}
+          target="_blank"
+          rel="noreferrer"
+          style={styles.applyBtn}
+        >
+          Apply Now
+        </a>
+        <button style={styles.saveBtn}>Save</button>
+      </div>
       </div>
     </div>
   );
@@ -75,7 +75,6 @@ const styles = {
     border: '1px solid #e2e8f0',
     borderRadius: '12px',
     padding: '20px 24px',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
   },
   top: {
     display: 'flex',
