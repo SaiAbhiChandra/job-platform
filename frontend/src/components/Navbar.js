@@ -1,12 +1,18 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Navbar() {
+  const navigate = useNavigate();
+
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.logo}>TrueJobs</Link>
       <div style={styles.links}>
         <Link to="/jobs" style={styles.link}>Browse Jobs</Link>
-        <button style={styles.btn}>Sign Up Free</button>
+        <a href="#companies" style={styles.link}>Companies</a>
+        <button style={styles.btnOutline}>Log in</button>
+        <button style={styles.btnPrimary} onClick={() => navigate('/jobs')}>
+          Sign up free
+        </button>
       </div>
     </nav>
   );
@@ -17,15 +23,19 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px 40px',
-    background: '#0f172a',
-    color: 'white',
+    padding: '14px 40px',
+    background: '#ffffff',
+    borderBottom: '1px solid #e2e8f0',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   logo: {
     fontSize: '22px',
-    fontWeight: 'bold',
-    color: '#38bdf8',
+    fontWeight: '700',
+    color: '#2563eb',
     textDecoration: 'none',
+    letterSpacing: '-0.5px',
   },
   links: {
     display: 'flex',
@@ -33,20 +43,29 @@ const styles = {
     gap: '24px',
   },
   link: {
-    color: 'white',
+    color: '#64748b',
     textDecoration: 'none',
     fontSize: '15px',
+    fontWeight: '500',
   },
-  btn: {
-    background: '#38bdf8',
-    color: '#0f172a',
+  btnOutline: {
+    background: 'transparent',
+    color: '#1e293b',
+    border: '1px solid #cbd5e1',
+    padding: '8px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  btnPrimary: {
+    background: '#2563eb',
+    color: 'white',
     border: 'none',
     padding: '8px 20px',
     borderRadius: '8px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    fontSize: '15px',
-  }
+    fontSize: '14px',
+    fontWeight: '600',
+  },
 };
 
 export default Navbar;
