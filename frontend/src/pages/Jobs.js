@@ -84,10 +84,23 @@ function Jobs() {
 
   const filtered = filter === 'All'
     ? jobs
-    : jobs.filter(j =>
-        j.employment_type?.toLowerCase().includes(filter.toLowerCase()) ||
-        j.location?.toLowerCase().includes(filter.toLowerCase())
-      );
+    : filter === 'Remote'
+    ? jobs.filter(j =>
+        j.is_remote ||
+        j.location?.toLowerCase().includes('remote')
+      )
+    : filter === 'Internship'
+    ? jobs.filter(j =>
+        j.employment_type === 'Internship' ||
+        j.title?.toLowerCase().includes('intern')
+      )
+    : filter === 'Full-time'
+    ? jobs.filter(j =>
+        j.employment_type === 'Full-time' ||
+        (!j.title?.toLowerCase().includes('intern') &&
+         !j.title?.toLowerCase().includes('part-time'))
+      )
+    : jobs;
 
   return (
     <div style={styles.page}>

@@ -119,22 +119,24 @@ router.get('/companies', async (req, res) => {
       tech: [
         'airbnb', 'stripe', 'notion', 'figma', 'shopify',
         'canva', 'atlassian', 'hubspot', 'gitlab', 'intercom',
-        'linear', 'vercel', 'planetscale', 'supabase', 'discord',
-        'twilio', 'sendgrid', 'datadog', 'segment', 'mixpanel'
+        'linear', 'discord', 'twilio', 'datadog', 'segment',
+        'mixpanel', 'amplitude', 'loom', 'miro', 'front'
       ],
       finance: [
         'brex', 'gusto', 'rippling', 'plaid', 'carta',
-        'chime', 'robinhood', 'coinbase', 'kraken', 'gemini'
+        'greenhouse', 'checkr', 'lattice', 'lever', 'namely'
       ],
       ecommerce: [
-        'doordash', 'instacart', 'faire', 'shipbob', 'postmates'
+        'doordash', 'instacart', 'faire', 'shipbob', 'klaviyo',
+        'yotpo', 'gorgias', 'rechargepayments', 'postscript', 'attentive'
       ],
       healthcare: [
-        'ro', 'hims', 'headspace', 'calm', 'noom'
+        'hims', 'headspace', 'calm', 'noom', 'zocdoc',
+        'included-health', 'lyra', 'spring-health', 'sword-health', 'cerebral'
       ],
       remote: [
-        'doist', 'buffer', 'zapier', 'automattic', 'invision',
-        'hotjar', 'close', 'front', 'loom', 'miro'
+        'doist', 'buffer', 'zapier', 'automattic', 'invisionapp',
+        'hotjar', 'close', 'basecamp', 'wildbit', 'convertkit'
       ]
     };
 
@@ -165,15 +167,33 @@ router.get('/companies', async (req, res) => {
           );
         }
 
-        const mapped = jobs.map(job => ({
-          id: job.id,
-          title: job.title,
-          company: companies[index],
-          location: job.location.name,
-          apply_url: job.absolute_url,
-          posted_date: job.updated_at,
-          source: 'Greenhouse'
-        }));
+        const mapped = jobs.map(job => {
+          const title = job.title.toLowerCase();
+          let employment_type = 'Full-time';
+          if (title.includes('intern') || title.includes('internship')) {
+            employment_type = 'Internship';
+          } else if (title.includes('part-time') || title.includes('part time')) {
+            employment_type = 'Part-time';
+          } else if (title.includes('contract')) {
+            employment_type = 'Contract';
+          }
+
+          const location = job.location.name || '';
+          const isRemote = location.toLowerCase().includes('remote') ||
+            title.includes('remote');
+
+          return {
+            id: job.id,
+            title: job.title,
+            company: companies[index],
+            location: location || 'Remote / Global',
+            employment_type,
+            is_remote: isRemote,
+            apply_url: job.absolute_url,
+            posted_date: job.updated_at,
+            source: 'Greenhouse'
+          };
+        });
         allJobs = [...allJobs, ...mapped];
       }
     });
