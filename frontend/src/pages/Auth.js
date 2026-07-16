@@ -11,12 +11,13 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate('/jobs');
     });
   }, [navigate]);
-  const navigate = useNavigate();
 
   const handleSubmit = async () => {
     setLoading(true);
