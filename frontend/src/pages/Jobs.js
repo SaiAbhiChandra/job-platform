@@ -7,46 +7,58 @@ const API = 'https://job-platform-production-ad1a.up.railway.app';
 const COMPANIES = [
   'airbnb', 'stripe', 'notion', 'figma', 'shopify',
   'canva', 'atlassian', 'hubspot', 'gitlab', 'intercom',
-  'linear', 'vercel', 'discord', 'twilio', 'datadog',
+  'linear', 'discord', 'twilio', 'datadog', 'segment',
   'brex', 'gusto', 'rippling', 'plaid', 'coinbase',
-  'doordash', 'instacart', 'zapier', 'automattic', 'loom',
-  'miro', 'front', 'close', 'buffer', 'doist'
+  'doordash', 'zapier', 'automattic', 'loom', 'miro'
 ];
 
 const INDUSTRIES = [
-  { label: 'All Industries', value: 'all' },
-  { label: 'Tech', value: 'tech' },
-  { label: 'Finance', value: 'finance' },
-  { label: 'E-Commerce', value: 'ecommerce' },
-  { label: 'Healthcare', value: 'healthcare' },
-  { label: 'Remote Only', value: 'remote' },
+  { label: '🌍 All Industries', value: 'all' },
+  { label: '💻 Tech', value: 'tech' },
+  { label: '💰 Finance', value: 'finance' },
+  { label: '🛒 E-Commerce', value: 'ecommerce' },
+  { label: '🏥 Healthcare', value: 'healthcare' },
+  { label: '🌐 Remote Only', value: 'remote' },
+];
+
+const INDIA_KEYWORDS = [
+  'Software Engineer', 'Data Scientist', 'Product Manager',
+  'UI/UX Designer', 'DevOps', 'Python Developer',
+  'React Developer', 'Machine Learning', 'Full Stack',
+  'Business Analyst'
 ];
 
 function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [keyword, setKeyword] = useState('');
-  const [company, setCompany] = useState('airbnb');
-  const [source, setSource] = useState('companies');
-  const [industry, setIndustry] = useState('all');
   const [filter, setFilter] = useState('All');
+  const [activeTab, setActiveTab] = useState('global');
   const [searchInput, setSearchInput] = useState('');
+  const [industry, setIndustry] = useState('all');
+  const [company, setCompany] = useState('airbnb');
+  const [indiaKeyword, setIndiaKeyword] = useState('software engineer');
+  const [indiaLocation, setIndiaLocation] = useState('India');
+  const [source, setSource] = useState('companies');
   const [totalCompanies, setTotalCompanies] = useState(0);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
-  const filters = ['All', 'Full-time', 'Internship', 'Remote'];
+  const filters = ['All', 'Full-time', 'Internship', 'Remote', 'Government'];
 
   useEffect(() => {
-    fetchJobs();
+    if (activeTab === 'global') fetchGlobalJobs();
+    else if (activeTab === 'india') fetchIndiaJobs();
+    else if (activeTab === 'govt') fetchGovtJobs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTab]);
 
-  const fetchJobs = async (kw, ind, src, comp) => {
+  const fetchGlobalJobs = async (ind, kw, src, comp) => {
     setLoading(true);
     setJobs([]);
+    setLoadingMsg('Fetching jobs from 50+ global companies...');
     try {
       const currentSource = src || source;
-      const currentKeyword = kw !== undefined ? kw : keyword;
       const currentIndustry = ind || industry;
+      const currentKeyword = kw || searchInput;
       const currentCompany = comp || company;
 
       let url = '';
@@ -60,7 +72,7 @@ function Jobs() {
         url = `${API}/api/jobs/adzuna?keyword=${currentKeyword || 'software engineer'}&country=gb`;
       }
 
-      const res = await axios.get(url);
+      const res = await axios.get(url, { timeout: 30000 });
       if (res.data.success) {
         setJobs(res.data.jobs);
         setTotalCompanies(res.data.companies_fetched || 0);
@@ -71,156 +83,236 @@ function Jobs() {
     setLoading(false);
   };
 
+  const fetchIndiaJobs = async (kw, loc) => {
+    setLoading(true);
+    setJobs([]);
+    setLoadingMsg('Fetching jobs from LinkedIn, Indeed & Glassdoor India...');
+    try {
+      const keyword = kw || indiaKeyword;
+      const location = loc || indiaLocation;
+      const res = await axios.get(
+        `${API}/api/jobs/india?keyword=${keyword}&location=${location}`,
+        { timeout: 20000 }
+      );
+      if (res.data.success) setJobs(res.data.jobs);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const fetchGovtJobs = async (kw) => {
+    setLoading(true);
+    setJobs([]);
+    setLoadingMsg('Fetching government job listings...');
+    try {
+      const keyword = kw || searchInput;
+      const res = await axios.get(
+        `${API}/api/jobs/govtjobs?keyword=${keyword}`,
+        { timeout: 15000 }
+      );
+      if (res.data.success) setJobs(res.data.jobs);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
   const handleSearch = () => {
-    setKeyword(searchInput);
-    fetchJobs(searchInput, industry, source, company);
+    if (activeTab === 'global') fetchGlobalJobs(industry, searchInput, source, company);
+    else if (activeTab === 'india') fetchIndiaJobs(indiaKeyword, indiaLocation);
+    else if (activeTab === 'govt') fetchGovtJobs(searchInput);
   };
 
-  const handleIndustry = (ind) => {
-    setIndustry(ind);
-    fetchJobs(keyword, ind, 'companies', company);
-    setSource('companies');
-  };
-
-  const filtered = filter === 'All'
-    ? jobs
-    : filter === 'Remote'
-    ? jobs.filter(j =>
-        j.is_remote ||
-        j.location?.toLowerCase().includes('remote')
-      )
-    : filter === 'Internship'
-    ? jobs.filter(j =>
+  const filtered = filter === 'All' ? jobs
+    : filter === 'Remote' ? jobs.filter(j =>
+        j.is_remote || j.location?.toLowerCase().includes('remote'))
+    : filter === 'Internship' ? jobs.filter(j =>
         j.employment_type === 'Internship' ||
-        j.title?.toLowerCase().includes('intern')
-      )
-    : filter === 'Full-time'
-    ? jobs.filter(j =>
+        j.title?.toLowerCase().includes('intern'))
+    : filter === 'Government' ? jobs.filter(j =>
+        j.employment_type === 'Government' ||
+        j.source?.toLowerCase().includes('govt'))
+    : filter === 'Full-time' ? jobs.filter(j =>
         j.employment_type === 'Full-time' ||
         (!j.title?.toLowerCase().includes('intern') &&
-         !j.title?.toLowerCase().includes('part-time'))
-      )
+         j.employment_type !== 'Government'))
     : jobs;
 
   return (
     <div style={styles.page}>
-      <div style={styles.searchBar}>
-        <input
-          style={styles.input}
-          placeholder="Job title, skill, or keyword..."
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSearch()}
-        />
-        <select
-          style={styles.select}
-          value={source}
-          onChange={e => {
-            setSource(e.target.value);
-            fetchJobs(keyword, industry, e.target.value, company);
-          }}
-        >
-          <option value="companies">50+ Top Companies</option>
-          <option value="greenhouse">Single Company</option>
-          <option value="jsearch">All Platforms (JSearch)</option>
-          <option value="adzuna">Adzuna (UK/Global)</option>
-        </select>
-
-        {source === 'greenhouse' && (
-          <select
-            style={styles.select}
-            value={company}
-            onChange={e => {
-              setCompany(e.target.value);
-              fetchJobs(keyword, industry, 'greenhouse', e.target.value);
+      {/* Tab Bar */}
+      <div style={styles.tabBar}>
+        {[
+          { label: '🌍 Global Jobs', value: 'global' },
+          { label: '🇮🇳 India Jobs', value: 'india' },
+          { label: '🏛️ Govt Jobs', value: 'govt' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            style={{
+              ...styles.tab,
+              ...(activeTab === tab.value ? styles.tabActive : {})
             }}
+            onClick={() => setActiveTab(tab.value)}
           >
-            {COMPANIES.map(c => (
-              <option key={c} value={c}>
-                {c.charAt(0).toUpperCase() + c.slice(1)}
-              </option>
-            ))}
-          </select>
-        )}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
+      {/* Search Bar */}
+      <div style={styles.searchBar}>
+        {activeTab === 'india' ? (
+          <>
+            <select
+              style={styles.select}
+              value={indiaKeyword}
+              onChange={e => setIndiaKeyword(e.target.value)}
+            >
+              {INDIA_KEYWORDS.map(k => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
+            <select
+              style={styles.select}
+              value={indiaLocation}
+              onChange={e => setIndiaLocation(e.target.value)}
+            >
+              {['India', 'Hyderabad', 'Bangalore', 'Mumbai',
+                'Chennai', 'Delhi', 'Pune', 'Kolkata', 'Remote India'
+              ].map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <input
+              style={styles.input}
+              placeholder={
+                activeTab === 'govt'
+                  ? 'Search govt jobs (UPSC, SSC, Banking...)'
+                  : 'Job title, skill, or keyword...'
+              }
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            />
+            {activeTab === 'global' && (
+              <select
+                style={styles.select}
+                value={source}
+                onChange={e => {
+                  setSource(e.target.value);
+                  fetchGlobalJobs(industry, searchInput, e.target.value, company);
+                }}
+              >
+                <option value="companies">50+ Top Companies</option>
+                <option value="jsearch">JSearch (Global)</option>
+                <option value="adzuna">Adzuna (UK/Global)</option>
+                <option value="greenhouse">Single Company</option>
+              </select>
+            )}
+          </>
+        )}
         <button style={styles.searchBtn} onClick={handleSearch}>
           Search Jobs
         </button>
       </div>
 
       <div style={styles.layout}>
+        {/* Sidebar */}
         <div style={styles.sidebar}>
-          <div style={styles.sidebarSection}>
-            <p style={styles.sidebarTitle}>Industry</p>
-            {INDUSTRIES.map(ind => (
-              <div
-                key={ind.value}
-                style={{
-                  ...styles.sidebarItem,
-                  color: industry === ind.value ? '#2563eb' : '#64748b',
-                  fontWeight: industry === ind.value ? '600' : '400',
-                  background: industry === ind.value ? '#eff6ff' : 'transparent',
-                  borderRadius: '6px',
-                  padding: '7px 10px',
-                }}
-                onClick={() => handleIndustry(ind.value)}
-              >
-                {ind.label}
+          {activeTab === 'global' && (
+            <>
+              <div style={styles.sidebarSection}>
+                <p style={styles.sidebarTitle}>Industry</p>
+                {INDUSTRIES.map(ind => (
+                  <div
+                    key={ind.value}
+                    style={{
+                      ...styles.sidebarItem,
+                      ...(industry === ind.value ? styles.sidebarItemActive : {})
+                    }}
+                    onClick={() => {
+                      setIndustry(ind.value);
+                      fetchGlobalJobs(ind.value, searchInput, 'companies', company);
+                      setSource('companies');
+                    }}
+                  >
+                    {ind.label}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              <div style={styles.sidebarSection}>
+                <p style={styles.sidebarTitle}>Top Companies</p>
+                {COMPANIES.slice(0, 15).map(c => (
+                  <div
+                    key={c}
+                    style={{
+                      ...styles.sidebarItem,
+                      ...(company === c && source === 'greenhouse'
+                        ? styles.sidebarItemActive : {})
+                    }}
+                    onClick={() => {
+                      setCompany(c);
+                      setSource('greenhouse');
+                      fetchGlobalJobs(industry, searchInput, 'greenhouse', c);
+                    }}
+                  >
+                    {c.charAt(0).toUpperCase() + c.slice(1)}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
-          <div style={styles.sidebarSection}>
-            <p style={styles.sidebarTitle}>Source</p>
-            {[
-              { label: '50+ Companies', value: 'companies' },
-              { label: 'JSearch', value: 'jsearch' },
-              { label: 'Adzuna', value: 'adzuna' },
-            ].map(s => (
-              <div
-                key={s.value}
-                style={{
-                  ...styles.sidebarItem,
-                  color: source === s.value ? '#2563eb' : '#64748b',
-                  fontWeight: source === s.value ? '600' : '400',
-                  background: source === s.value ? '#eff6ff' : 'transparent',
-                  borderRadius: '6px',
-                  padding: '7px 10px',
-                }}
-                onClick={() => {
-                  setSource(s.value);
-                  fetchJobs(keyword, industry, s.value, company);
-                }}
-              >
-                {s.label}
-              </div>
-            ))}
-          </div>
+          {activeTab === 'india' && (
+            <div style={styles.sidebarSection}>
+              <p style={styles.sidebarTitle}>Popular Searches</p>
+              {INDIA_KEYWORDS.map(k => (
+                <div
+                  key={k}
+                  style={{
+                    ...styles.sidebarItem,
+                    ...(indiaKeyword === k ? styles.sidebarItemActive : {})
+                  }}
+                  onClick={() => {
+                    setIndiaKeyword(k);
+                    fetchIndiaJobs(k, indiaLocation);
+                  }}
+                >
+                  {k}
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div style={styles.sidebarSection}>
-            <p style={styles.sidebarTitle}>Top Companies</p>
-            {COMPANIES.slice(0, 15).map(c => (
-              <div
-                key={c}
-                style={{
-                  ...styles.sidebarItem,
-                  color: company === c && source === 'greenhouse'
-                    ? '#2563eb' : '#64748b',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                }}
-                onClick={() => {
-                  setCompany(c);
-                  setSource('greenhouse');
-                  fetchJobs(keyword, industry, 'greenhouse', c);
-                }}
-              >
-                {c.charAt(0).toUpperCase() + c.slice(1)}
-              </div>
-            ))}
-          </div>
+          {activeTab === 'govt' && (
+            <div style={styles.sidebarSection}>
+              <p style={styles.sidebarTitle}>Job Categories</p>
+              {[
+                'UPSC / IAS', 'SSC / CGL', 'Banking / IBPS',
+                'Railway / RRB', 'Defence / Army', 'Teaching / TET',
+                'Police / PSC', 'PSU Jobs', 'State Govt'
+              ].map(k => (
+                <div
+                  key={k}
+                  style={styles.sidebarItem}
+                  onClick={() => {
+                    setSearchInput(k);
+                    fetchGovtJobs(k);
+                  }}
+                >
+                  {k}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
+        {/* Main Content */}
         <div style={styles.main}>
           <div style={styles.topBar}>
             <div style={styles.filters}>
@@ -238,8 +330,8 @@ function Jobs() {
               ))}
             </div>
             <span style={styles.count}>
-              {loading ? 'Loading...' : `${filtered.length} jobs found`}
-              {totalCompanies > 0 && !loading && (
+              {loading ? loadingMsg : `${filtered.length} jobs found`}
+              {totalCompanies > 0 && !loading && activeTab === 'global' && (
                 <span style={styles.companyCount}>
                   {' '}from {totalCompanies} companies
                 </span>
@@ -250,9 +342,12 @@ function Jobs() {
           {loading && (
             <div style={styles.loading}>
               <div style={styles.spinner} />
-              <p style={styles.loadingText}>
-                Fetching jobs from 50+ companies...
-              </p>
+              <p style={styles.loadingText}>{loadingMsg}</p>
+              {activeTab === 'global' && (
+                <p style={styles.loadingSubtext}>
+                  Checking 50+ companies simultaneously...
+                </p>
+              )}
             </div>
           )}
 
@@ -261,7 +356,11 @@ function Jobs() {
               <p style={{ fontSize: '40px' }}>🔍</p>
               <p style={styles.emptyTitle}>No jobs found</p>
               <p style={styles.emptyDesc}>
-                Try a different keyword or industry
+                {activeTab === 'india'
+                  ? 'Try a different keyword or city'
+                  : activeTab === 'govt'
+                  ? 'Try searching UPSC, SSC, Banking, Railway'
+                  : 'Try a different keyword or industry'}
               </p>
             </div>
           )}
@@ -282,10 +381,32 @@ const styles = {
     background: '#f8fafc',
     minHeight: '100vh',
   },
+  tabBar: {
+    display: 'flex',
+    background: 'white',
+    borderBottom: '1px solid #e2e8f0',
+    padding: '0 32px',
+    gap: '4px',
+  },
+  tab: {
+    padding: '14px 24px',
+    border: 'none',
+    background: 'transparent',
+    fontSize: '15px',
+    color: '#64748b',
+    fontWeight: '500',
+    cursor: 'pointer',
+    borderBottom: '2px solid transparent',
+  },
+  tabActive: {
+    color: '#2563eb',
+    borderBottom: '2px solid #2563eb',
+    fontWeight: '600',
+  },
   searchBar: {
     display: 'flex',
     gap: '10px',
-    padding: '20px 32px',
+    padding: '16px 32px',
     background: 'white',
     borderBottom: '1px solid #e2e8f0',
     flexWrap: 'wrap',
@@ -320,7 +441,7 @@ const styles = {
   layout: {
     display: 'grid',
     gridTemplateColumns: '220px 1fr',
-    minHeight: 'calc(100vh - 130px)',
+    minHeight: 'calc(100vh - 180px)',
   },
   sidebar: {
     background: 'white',
@@ -344,7 +465,14 @@ const styles = {
     fontSize: '13px',
     color: '#64748b',
     cursor: 'pointer',
+    padding: '7px 10px',
+    borderRadius: '6px',
     marginBottom: '2px',
+  },
+  sidebarItemActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+    background: '#eff6ff',
   },
   main: {
     padding: '24px 28px',
@@ -396,7 +524,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '80px 0',
-    gap: '16px',
+    gap: '12px',
   },
   spinner: {
     width: '40px',
@@ -407,8 +535,13 @@ const styles = {
     animation: 'spin 0.8s linear infinite',
   },
   loadingText: {
-    color: '#64748b',
-    fontSize: '15px',
+    color: '#1e293b',
+    fontSize: '16px',
+    fontWeight: '500',
+  },
+  loadingSubtext: {
+    color: '#94a3b8',
+    fontSize: '13px',
   },
   empty: {
     textAlign: 'center',

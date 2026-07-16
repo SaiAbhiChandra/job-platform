@@ -214,4 +214,151 @@ router.get('/companies', async (req, res) => {
   }
 });
 
+// India specific jobs
+router.get('/india', async (req, res) => {
+  try {
+    const keyword = req.query.keyword || 'software engineer';
+    const location = req.query.location || 'India';
+
+    const options = {
+      method: 'GET',
+      url: 'https://jsearch.p.rapidapi.com/search-v2',
+      params: {
+        query: `${keyword} in ${location}`,
+        num_pages: '1',
+        date_posted: 'all',
+        country: 'in',
+        language: 'en'
+      },
+      headers: {
+        'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+        'x-rapidapi-host': 'jsearch.p.rapidapi.com',
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const response = await axios.request(options);
+    const rawJobs = response.data.data?.jobs ||
+      response.data.jobs ||
+      response.data.data || [];
+
+    const jobs = rawJobs.map(job => ({
+      id: job.job_id,
+      title: job.job_title,
+      company: job.employer_name,
+      location: `${job.job_city || ''} ${job.job_state || ''} India`.trim(),
+      employment_type: job.job_employment_type || 'Full-time',
+      posted_date: job.job_posted_at_datetime_utc,
+      apply_url: job.job_apply_link,
+      salary: job.job_min_salary
+        ? `₹${job.job_min_salary}–${job.job_max_salary}`
+        : 'Not disclosed',
+      source: 'JSearch (LinkedIn/Indeed/Glassdoor)'
+    }));
+
+    res.json({ success: true, count: jobs.length, jobs });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      detail: error.response ? error.response.data : 'no response'
+    });
+  }
+});
+
+// Government jobs India via NCS API
+router.get('/govtjobs', async (req, res) => {
+  try {
+    const keyword = req.query.keyword || '';
+
+    // NCS (National Career Service) - Government of India
+    const response = await axios.get(
+      'https://www.ncs.gov.in/api/jobs',
+      {
+        params: {
+          keyword,
+          pageNo: 1,
+          pageSize: 20,
+        },
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0'
+        }
+      }
+    );
+
+    const jobs = (response.data.jobs || response.data || []).map(job => ({
+      id: job.jobId || job.id,
+      title: job.jobTitle || job.title,
+      company: job.organizationName || job.company || 'Government',
+      location: job.jobLocation || job.location || 'India',
+      employment_type: 'Government',
+      posted_date: job.postedDate || job.createdDate,
+      apply_url: job.applyUrl || 'https://www.ncs.gov.in',
+      source: 'Govt (NCS India)'
+    }));
+
+    res.json({ success: true, count: jobs.length, jobs });
+
+  } catch (error) {
+    // Fallback to static govt job boards if NCS API fails
+    const fallbackJobs = [
+      {
+        id: 'upsc-2026',
+        title: 'Civil Services Examination 2026',
+        company: 'UPSC',
+        location: 'All India',
+        employment_type: 'Government',
+        apply_url: 'https://upsc.gov.in',
+        source: 'Govt (Central)'
+      },
+      {
+        id: 'ssc-cgl-2026',
+        title: 'SSC CGL 2026',
+        company: 'Staff Selection Commission',
+        location: 'All India',
+        employment_type: 'Government',
+        apply_url: 'https://ssc.nic.in',
+        source: 'Govt (Central)'
+      },
+      {
+        id: 'ibps-2026',
+        title: 'IBPS PO/Clerk 2026',
+        company: 'IBPS',
+        location: 'All India',
+        employment_type: 'Government',
+        apply_url: 'https://www.ibps.in',
+        source: 'Govt (Banking)'
+      },
+      {
+        id: 'railway-2026',
+        title: 'Railway Recruitment 2026',
+        company: 'Indian Railways (RRB)',
+        location: 'All India',
+        employment_type: 'Government',
+        apply_url: 'https://www.rrbcdg.gov.in',
+        source: 'Govt (Central)'
+      },
+      {
+        id: 'nit-faculty',
+        title: 'Faculty Positions',
+        company: 'NITs / IITs',
+        location: 'All India',
+        employment_type: 'Government',
+        apply_url: 'https://www.nits.ac.in',
+        source: 'Govt (Education)'
+      }
+    ];
+
+    res.json({
+      success: true,
+      count: fallbackJobs.length,
+      jobs: fallbackJobs,
+      note: 'Showing major govt recruitment portals'
+    });
+  }
+});
+
 module.exports = router;
