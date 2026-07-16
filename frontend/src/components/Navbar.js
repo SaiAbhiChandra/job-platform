@@ -1,18 +1,48 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 
 function Navbar() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.logo}>TrueJobs</Link>
       <div style={styles.links}>
         <Link to="/jobs" style={styles.link}>Browse Jobs</Link>
-        <a href="#companies" style={styles.link}>Companies</a>
-        <button style={styles.btnOutline}>Log in</button>
-        <button style={styles.btnPrimary} onClick={() => navigate('/auth')}>
-          Sign up free
-        </button>
+        {user && (
+          <Link to="/saved" style={styles.link}>Saved Jobs</Link>
+        )}
+        {user ? (
+          <>
+            <span style={styles.userBadge}>
+              {user.email.split('@')[0]}
+            </span>
+            <button style={styles.btnOutline} onClick={handleSignOut}>
+              Log out
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              style={styles.btnOutline}
+              onClick={() => navigate('/auth')}
+            >
+              Log in
+            </button>
+            <button
+              style={styles.btnPrimary}
+              onClick={() => navigate('/auth')}
+            >
+              Sign up free
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
@@ -48,6 +78,14 @@ const styles = {
     fontSize: '15px',
     fontWeight: '500',
   },
+  userBadge: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#2563eb',
+    background: '#dbeafe',
+    padding: '6px 14px',
+    borderRadius: '20px',
+  },
   btnOutline: {
     background: 'transparent',
     color: '#1e293b',
@@ -56,6 +94,7 @@ const styles = {
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
+    cursor: 'pointer',
   },
   btnPrimary: {
     background: '#2563eb',
@@ -65,6 +104,7 @@ const styles = {
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
+    cursor: 'pointer',
   },
 };
 
