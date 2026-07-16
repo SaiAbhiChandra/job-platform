@@ -6,51 +6,80 @@ const API = 'https://job-platform-production-ad1a.up.railway.app';
 
 const COMPANIES = [
   'airbnb', 'stripe', 'notion', 'figma', 'shopify',
-  'canva', 'atlassian', 'hubspot', 'gitlab', 'intercom'
+  'canva', 'atlassian', 'hubspot', 'gitlab', 'intercom',
+  'linear', 'vercel', 'discord', 'twilio', 'datadog',
+  'brex', 'gusto', 'rippling', 'plaid', 'coinbase',
+  'doordash', 'instacart', 'zapier', 'automattic', 'loom',
+  'miro', 'front', 'close', 'buffer', 'doist'
+];
+
+const INDUSTRIES = [
+  { label: 'All Industries', value: 'all' },
+  { label: 'Tech', value: 'tech' },
+  { label: 'Finance', value: 'finance' },
+  { label: 'E-Commerce', value: 'ecommerce' },
+  { label: 'Healthcare', value: 'healthcare' },
+  { label: 'Remote Only', value: 'remote' },
 ];
 
 function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [keyword] = useState('software engineer');
+  const [keyword, setKeyword] = useState('');
   const [company, setCompany] = useState('airbnb');
-  const [source, setSource] = useState('greenhouse');
+  const [source, setSource] = useState('companies');
+  const [industry, setIndustry] = useState('all');
   const [filter, setFilter] = useState('All');
   const [searchInput, setSearchInput] = useState('');
+  const [totalCompanies, setTotalCompanies] = useState(0);
 
   const filters = ['All', 'Full-time', 'Internship', 'Remote'];
 
   useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      try {
-        let url = source === 'greenhouse'
-          ? `${API}/api/jobs/greenhouse?company=${company}`
-          : `${API}/api/jobs/jsearch?keyword=${keyword}`;
-        const res = await axios.get(url);
-        if (res.data.success) setJobs(res.data.jobs);
-      } catch (err) {
-        console.error(err);
-      }
-      setLoading(false);
-    };
-    fetch();
+    fetchJobs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSearch = async () => {
+  const fetchJobs = async (kw, ind, src, comp) => {
     setLoading(true);
     setJobs([]);
     try {
-      let url = source === 'greenhouse'
-        ? `${API}/api/jobs/greenhouse?company=${searchInput || company}`
-        : `${API}/api/jobs/jsearch?keyword=${searchInput || keyword}`;
+      const currentSource = src || source;
+      const currentKeyword = kw !== undefined ? kw : keyword;
+      const currentIndustry = ind || industry;
+      const currentCompany = comp || company;
+
+      let url = '';
+      if (currentSource === 'companies') {
+        url = `${API}/api/jobs/companies?industry=${currentIndustry}&keyword=${currentKeyword}`;
+      } else if (currentSource === 'greenhouse') {
+        url = `${API}/api/jobs/greenhouse?company=${currentCompany}`;
+      } else if (currentSource === 'jsearch') {
+        url = `${API}/api/jobs/jsearch?keyword=${currentKeyword || 'software engineer'}`;
+      } else if (currentSource === 'adzuna') {
+        url = `${API}/api/jobs/adzuna?keyword=${currentKeyword || 'software engineer'}&country=gb`;
+      }
+
       const res = await axios.get(url);
-      if (res.data.success) setJobs(res.data.jobs);
+      if (res.data.success) {
+        setJobs(res.data.jobs);
+        setTotalCompanies(res.data.companies_fetched || 0);
+      }
     } catch (err) {
       console.error(err);
     }
     setLoading(false);
+  };
+
+  const handleSearch = () => {
+    setKeyword(searchInput);
+    fetchJobs(searchInput, industry, source, company);
+  };
+
+  const handleIndustry = (ind) => {
+    setIndustry(ind);
+    fetchJobs(keyword, ind, 'companies', company);
+    setSource('companies');
   };
 
   const filtered = filter === 'All'
@@ -65,7 +94,7 @@ function Jobs() {
       <div style={styles.searchBar}>
         <input
           style={styles.input}
-          placeholder="Job title, skill, or company..."
+          placeholder="Job title, skill, or keyword..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -73,16 +102,25 @@ function Jobs() {
         <select
           style={styles.select}
           value={source}
-          onChange={e => setSource(e.target.value)}
+          onChange={e => {
+            setSource(e.target.value);
+            fetchJobs(keyword, industry, e.target.value, company);
+          }}
         >
-          <option value="greenhouse">Top Companies</option>
-          <option value="jsearch">All Platforms</option>
+          <option value="companies">50+ Top Companies</option>
+          <option value="greenhouse">Single Company</option>
+          <option value="jsearch">All Platforms (JSearch)</option>
+          <option value="adzuna">Adzuna (UK/Global)</option>
         </select>
+
         {source === 'greenhouse' && (
           <select
             style={styles.select}
             value={company}
-            onChange={e => setCompany(e.target.value)}
+            onChange={e => {
+              setCompany(e.target.value);
+              fetchJobs(keyword, industry, 'greenhouse', e.target.value);
+            }}
           >
             {COMPANIES.map(c => (
               <option key={c} value={c}>
@@ -91,6 +129,7 @@ function Jobs() {
             ))}
           </select>
         )}
+
         <button style={styles.searchBtn} onClick={handleSearch}>
           Search Jobs
         </button>
@@ -99,24 +138,68 @@ function Jobs() {
       <div style={styles.layout}>
         <div style={styles.sidebar}>
           <div style={styles.sidebarSection}>
-            <p style={styles.sidebarTitle}>Source</p>
-            {['All Sources', 'Greenhouse', 'JSearch', 'Adzuna'].map(s => (
-              <div key={s} style={styles.sidebarItem}>{s}</div>
+            <p style={styles.sidebarTitle}>Industry</p>
+            {INDUSTRIES.map(ind => (
+              <div
+                key={ind.value}
+                style={{
+                  ...styles.sidebarItem,
+                  color: industry === ind.value ? '#2563eb' : '#64748b',
+                  fontWeight: industry === ind.value ? '600' : '400',
+                  background: industry === ind.value ? '#eff6ff' : 'transparent',
+                  borderRadius: '6px',
+                  padding: '7px 10px',
+                }}
+                onClick={() => handleIndustry(ind.value)}
+              >
+                {ind.label}
+              </div>
             ))}
           </div>
+
           <div style={styles.sidebarSection}>
-            <p style={styles.sidebarTitle}>Company</p>
-            {COMPANIES.map(c => (
+            <p style={styles.sidebarTitle}>Source</p>
+            {[
+              { label: '50+ Companies', value: 'companies' },
+              { label: 'JSearch', value: 'jsearch' },
+              { label: 'Adzuna', value: 'adzuna' },
+            ].map(s => (
+              <div
+                key={s.value}
+                style={{
+                  ...styles.sidebarItem,
+                  color: source === s.value ? '#2563eb' : '#64748b',
+                  fontWeight: source === s.value ? '600' : '400',
+                  background: source === s.value ? '#eff6ff' : 'transparent',
+                  borderRadius: '6px',
+                  padding: '7px 10px',
+                }}
+                onClick={() => {
+                  setSource(s.value);
+                  fetchJobs(keyword, industry, s.value, company);
+                }}
+              >
+                {s.label}
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.sidebarSection}>
+            <p style={styles.sidebarTitle}>Top Companies</p>
+            {COMPANIES.slice(0, 15).map(c => (
               <div
                 key={c}
                 style={{
                   ...styles.sidebarItem,
-                  color: company === c ? '#2563eb' : '#64748b',
-                  fontWeight: company === c ? '600' : '400',
+                  color: company === c && source === 'greenhouse'
+                    ? '#2563eb' : '#64748b',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
                 }}
                 onClick={() => {
                   setCompany(c);
                   setSource('greenhouse');
+                  fetchJobs(keyword, industry, 'greenhouse', c);
                 }}
               >
                 {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -142,14 +225,21 @@ function Jobs() {
               ))}
             </div>
             <span style={styles.count}>
-              {filtered.length} jobs found
+              {loading ? 'Loading...' : `${filtered.length} jobs found`}
+              {totalCompanies > 0 && !loading && (
+                <span style={styles.companyCount}>
+                  {' '}from {totalCompanies} companies
+                </span>
+              )}
             </span>
           </div>
 
           {loading && (
             <div style={styles.loading}>
               <div style={styles.spinner} />
-              <p style={styles.loadingText}>Finding verified jobs...</p>
+              <p style={styles.loadingText}>
+                Fetching jobs from 50+ companies...
+              </p>
             </div>
           )}
 
@@ -157,7 +247,9 @@ function Jobs() {
             <div style={styles.empty}>
               <p style={{ fontSize: '40px' }}>🔍</p>
               <p style={styles.emptyTitle}>No jobs found</p>
-              <p style={styles.emptyDesc}>Try a different keyword or company</p>
+              <p style={styles.emptyDesc}>
+                Try a different keyword or industry
+              </p>
             </div>
           )}
 
@@ -210,6 +302,7 @@ const styles = {
     borderRadius: '8px',
     fontWeight: '600',
     fontSize: '15px',
+    cursor: 'pointer',
   },
   layout: {
     display: 'grid',
@@ -219,7 +312,8 @@ const styles = {
   sidebar: {
     background: 'white',
     borderRight: '1px solid #e2e8f0',
-    padding: '24px 20px',
+    padding: '24px 16px',
+    overflowY: 'auto',
   },
   sidebarSection: {
     marginBottom: '28px',
@@ -230,14 +324,14 @@ const styles = {
     color: '#94a3b8',
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
-    marginBottom: '12px',
+    marginBottom: '8px',
+    padding: '0 10px',
   },
   sidebarItem: {
-    fontSize: '14px',
+    fontSize: '13px',
     color: '#64748b',
-    padding: '7px 0',
     cursor: 'pointer',
-    borderRadius: '6px',
+    marginBottom: '2px',
   },
   main: {
     padding: '24px 28px',
@@ -263,6 +357,7 @@ const styles = {
     color: '#64748b',
     background: 'white',
     fontWeight: '500',
+    cursor: 'pointer',
   },
   chipActive: {
     background: '#dbeafe',
@@ -272,6 +367,11 @@ const styles = {
   count: {
     fontSize: '14px',
     color: '#94a3b8',
+  },
+  companyCount: {
+    fontSize: '13px',
+    color: '#2563eb',
+    fontWeight: '500',
   },
   grid: {
     display: 'grid',

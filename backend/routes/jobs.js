@@ -113,35 +113,82 @@ router.get('/adzuna', async (req, res) => {
 // MULTI-COMPANY: Fetch jobs from multiple companies at once
 router.get('/companies', async (req, res) => {
   try {
-    const companies = [
-      'airbnb', 'stripe', 'notion', 'figma', 'shopify',
-      'canva', 'atlassian', 'hubspot', 'intercom', 'gitlab'
-    ];
+    const { industry = 'all', keyword = '' } = req.query;
+
+    const allCompanies = {
+      tech: [
+        'airbnb', 'stripe', 'notion', 'figma', 'shopify',
+        'canva', 'atlassian', 'hubspot', 'gitlab', 'intercom',
+        'linear', 'vercel', 'planetscale', 'supabase', 'discord',
+        'twilio', 'sendgrid', 'datadog', 'segment', 'mixpanel'
+      ],
+      finance: [
+        'brex', 'gusto', 'rippling', 'plaid', 'carta',
+        'chime', 'robinhood', 'coinbase', 'kraken', 'gemini'
+      ],
+      ecommerce: [
+        'doordash', 'instacart', 'faire', 'shipbob', 'postmates'
+      ],
+      healthcare: [
+        'ro', 'hims', 'headspace', 'calm', 'noom'
+      ],
+      remote: [
+        'doist', 'buffer', 'zapier', 'automattic', 'invision',
+        'hotjar', 'close', 'front', 'loom', 'miro'
+      ]
+    };
+
+    let companies = [];
+    if (industry === 'all') {
+      companies = Object.values(allCompanies).flat();
+    } else {
+      companies = allCompanies[industry] || allCompanies.tech;
+    }
 
     const results = await Promise.allSettled(
       companies.map(company =>
-        axios.get(`https://boards-api.greenhouse.io/v1/boards/${company}/jobs`, {
-          timeout: 8000
-        })
+        axios.get(
+          `https://boards-api.greenhouse.io/v1/boards/${company}/jobs`,
+          { timeout: 8000 }
+        )
       )
     );
 
     let allJobs = [];
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
-        const jobs = result.value.data.jobs.map(job => ({
+        let jobs = result.value.data.jobs || [];
+
+        if (keyword) {
+          jobs = jobs.filter(job =>
+            job.title.toLowerCase().includes(keyword.toLowerCase())
+          );
+        }
+
+        const mapped = jobs.map(job => ({
           id: job.id,
           title: job.title,
           company: companies[index],
           location: job.location.name,
           apply_url: job.absolute_url,
+          posted_date: job.updated_at,
           source: 'Greenhouse'
         }));
-        allJobs = [...allJobs, ...jobs];
+        allJobs = [...allJobs, ...mapped];
       }
     });
 
-    res.json({ success: true, count: allJobs.length, jobs: allJobs });
+    allJobs.sort((a, b) =>
+      new Date(b.posted_date) - new Date(a.posted_date)
+    );
+
+    res.json({
+      success: true,
+      count: allJobs.length,
+      companies_fetched: companies.length,
+      jobs: allJobs
+    });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
