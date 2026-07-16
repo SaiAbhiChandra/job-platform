@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../supabase';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 function Auth() {
   const [mode, setMode] = useState('login');
@@ -10,6 +11,11 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/jobs');
+    });
+  }, [navigate]);
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
