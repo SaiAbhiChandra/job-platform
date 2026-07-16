@@ -21,7 +21,7 @@ function Navbar() {
         {user ? (
           <>
             <span style={styles.userBadge}>
-              {user.email.split('@')[0]}
+              {user.user_metadata?.full_name || user.email.split('@')[0]}
             </span>
             <button style={styles.btnOutline} onClick={handleSignOut}>
               Log out

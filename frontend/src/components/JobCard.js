@@ -1,4 +1,14 @@
+import { useState } from 'react';
+import { supabase } from '../supabase';
+import { useAuth } from '../AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 function JobCard({ job }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const initials = job.company
     ? job.company.substring(0, 2).toUpperCase()
     : 'JB';
@@ -8,6 +18,31 @@ function JobCard({ job }) {
   const colorIndex = job.company
     ? job.company.charCodeAt(0) % colors.length
     : 0;
+
+  const handleSave = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('saved_jobs').insert({
+        user_id: user.id,
+        job_id: String(job.id),
+        job_title: job.title,
+        company: job.company,
+        location: job.location,
+        apply_url: job.apply_url,
+        source: job.source,
+      });
+
+      if (!error) setSaved(true);
+    } catch (err) {
+      console.error(err);
+    }
+    setSaving(false);
+  };
 
   return (
     <div style={styles.card}>
@@ -34,9 +69,7 @@ function JobCard({ job }) {
           <span style={styles.metaItem}>💼 {job.employment_type}</span>
         )}
         {job.salary_min && job.salary_min !== 'Not disclosed' && (
-          <span style={styles.metaItem}>
-            💰 {job.salary_min}
-          </span>
+          <span style={styles.metaItem}>💰 {job.salary_min}</span>
         )}
         {job.posted_date && (
           <span style={styles.metaItem}>
@@ -54,16 +87,25 @@ function JobCard({ job }) {
 
       <div style={styles.bottom}>
         <div style={styles.actions}>
-        <a
-          href={job.apply_url}
-          target="_blank"
-          rel="noreferrer"
-          style={styles.applyBtn}
-        >
-          Apply Now
-        </a>
-        <button style={styles.saveBtn}>Save</button>
-      </div>
+          <a
+            href={job.apply_url}
+            target="_blank"
+            rel="noreferrer"
+            style={styles.applyBtn}
+          >
+            Apply Now →
+          </a>
+          <button
+            style={{
+              ...styles.saveBtn,
+              ...(saved ? styles.saveBtnSaved : {}),
+            }}
+            onClick={handleSave}
+            disabled={saving || saved}
+          >
+            {saved ? '✅ Saved' : saving ? 'Saving...' : '🔖 Save'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -174,6 +216,12 @@ const styles = {
     padding: '9px 16px',
     borderRadius: '8px',
     fontSize: '14px',
+    cursor: 'pointer',
+  },
+  saveBtnSaved: {
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    color: '#16a34a',
   },
 };
 
