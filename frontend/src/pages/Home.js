@@ -55,13 +55,26 @@ function Home() {
       </div>
 
       <div style={styles.companies}>
-        <p style={styles.companiesLabel}>Jobs from top companies including</p>
-        <div style={styles.companyList}>
-          {['Airbnb', 'Stripe', 'Notion', 'Figma', 'Shopify', 'Canva', 'GitLab', 'Atlassian'].map(c => (
-            <span key={c} style={styles.companyChip}>{c}</span>
-          ))}
-        </div>
-      </div>
+  <p style={styles.companiesLabel}>Trusted by top companies worldwide</p>
+  <div style={styles.marqueeWrapper}>
+    <div style={styles.marqueeTrack}>
+      {[
+        'Airbnb', 'Stripe', 'Notion', 'Figma', 'Shopify',
+        'Canva', 'GitLab', 'Atlassian', 'Discord', 'Twilio',
+        'Datadog', 'HubSpot', 'Intercom', 'Linear', 'Loom',
+        'Miro', 'Zapier', 'Brex', 'Gusto', 'Rippling',
+        'Plaid', 'Coinbase', 'DoorDash', 'Instacart', 'Buffer',
+        'Airbnb', 'Stripe', 'Notion', 'Figma', 'Shopify',
+        'Canva', 'GitLab', 'Atlassian', 'Discord', 'Twilio',
+        'Datadog', 'HubSpot', 'Intercom', 'Linear', 'Loom',
+        'Miro', 'Zapier', 'Brex', 'Gusto', 'Rippling',
+        'Plaid', 'Coinbase', 'DoorDash', 'Instacart', 'Buffer',
+      ].map((c, i) => (
+        <span key={i} style={styles.companyChip}>{c}</span>
+      ))}
+    </div>
+  </div>
+</div>
 
       <div style={styles.features}>
         {[
@@ -186,32 +199,40 @@ const styles = {
     background: '#e2e8f0',
   },
   companies: {
-    padding: '32px 40px',
+    padding: '32px 0',
     textAlign: 'center',
     borderBottom: '1px solid #e2e8f0',
     background: 'white',
+    overflow: 'hidden',
   },
   companiesLabel: {
     fontSize: '13px',
     color: '#94a3b8',
-    marginBottom: '16px',
+    marginBottom: '20px',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   },
-  companyList: {
+  marqueeWrapper: {
+    overflow: 'hidden',
+    width: '100%',
+    position: 'relative',
+  },
+  marqueeTrack: {
     display: 'flex',
-    justifyContent: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
+    gap: '16px',
+    animation: 'marquee 30s linear infinite',
+    width: 'max-content',
   },
   companyChip: {
-    padding: '6px 18px',
+    padding: '8px 20px',
     border: '1px solid #e2e8f0',
     borderRadius: '20px',
     fontSize: '14px',
     color: '#475569',
     background: '#f8fafc',
-    fontWeight: '500',
+    fontWeight: '600',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   features: {
     display: 'grid',
