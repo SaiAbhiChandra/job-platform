@@ -14,8 +14,9 @@ export function AuthProvider({ children }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
+        setLoading(false);
       }
     );
 
@@ -27,9 +28,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  if (loading) return null;
+
   return (
     <AuthContext.Provider value={{ user, loading, signOut }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

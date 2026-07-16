@@ -28,22 +28,26 @@ function Auth() {
         if (error) throw error;
 
         if (data.user) {
-          await supabase.from('profiles').insert({
-            id: data.user.id,
-            email: data.user.email,
-            full_name: name,
-          });
-          setSuccess('Account created! You can now log in.');
-          setMode('login');
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: name,
+            });
+
+          if (profileError) console.error(profileError);
+          setSuccess('Account created! Logging you in...');
+          setTimeout(() => navigate('/jobs'), 1500);
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
-        navigate('/jobs');
+        if (data.user) navigate('/jobs');
       }
     } catch (err) {
       setError(err.message);
