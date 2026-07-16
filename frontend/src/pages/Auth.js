@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { supabase } from '../supabase';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { supabase } from '../supabase';
 
 function Auth() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,7 +11,6 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -31,19 +30,13 @@ function Auth() {
           password,
           options: { data: { full_name: name } }
         });
-
         if (error) throw error;
-
         if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: data.user.email,
-              full_name: name,
-            });
-
-          if (profileError) console.error(profileError);
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: name,
+          });
           setSuccess('Account created! Logging you in...');
           setTimeout(() => navigate('/jobs'), 1500);
         }
@@ -52,14 +45,12 @@ function Auth() {
           email,
           password,
         });
-
         if (error) throw error;
         if (data.user) navigate('/jobs');
       }
     } catch (err) {
       setError(err.message);
     }
-
     setLoading(false);
   };
 
@@ -126,17 +117,25 @@ function Auth() {
 
         <div style={styles.toggle}>
           {mode === 'login' ? (
-            <>Don't have an account?{' '}
-              <span style={styles.link} onClick={() => setMode('signup')}>
+            <span>
+              Don't have an account?{' '}
+              <span
+                style={styles.link}
+                onClick={() => setMode('signup')}
+              >
                 Sign up free
               </span>
-            </>
+            </span>
           ) : (
-            <>Already have an account?{' '}
-              <span style={styles.link} onClick={() => setMode('login')}>
+            <span>
+              Already have an account?{' '}
+              <span
+                style={styles.link}
+                onClick={() => setMode('login')}
+              >
                 Log in
               </span>
-            </>
+            </span>
           )}
         </div>
       </div>
@@ -196,6 +195,7 @@ const styles = {
     fontSize: '15px',
     color: '#1e293b',
     outline: 'none',
+    boxSizing: 'border-box',
   },
   btn: {
     width: '100%',
@@ -208,6 +208,7 @@ const styles = {
     fontWeight: '600',
     marginTop: '8px',
     marginBottom: '20px',
+    cursor: 'pointer',
   },
   toggle: {
     textAlign: 'center',
