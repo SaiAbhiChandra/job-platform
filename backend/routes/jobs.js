@@ -425,4 +425,89 @@ router.get('/govtjobs', async (req, res) => {
   }
 });
 
+// AI Resume Analysis
+router.post('/analyze-resume', async (req, res) => {
+  try {
+    const { resumeText } = req.body;
+    if (!resumeText) {
+      return res.status(400).json({ success: false, error: 'No resume text provided' });
+    }
+
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      messages: [{
+        role: 'user',
+        content: `Extract skills from this resume. Return ONLY a JSON object with two arrays:
+1. "skills": top 10 technical skills (programming languages, frameworks, tools)
+2. "jobTitles": top 3 suitable job titles for this person
+
+Resume text:
+${resumeText.substring(0, 3000)}
+
+Return ONLY valid JSON like: {"skills": ["Python", "React"], "jobTitles": ["Software Engineer", "Data Scientist"]}`
+      }]
+    });
+
+    const text = message.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    res.json({ success: true, ...parsed });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Fetch jobs by multiple keywords
+router.get('/matched-jobs', async (req, res) => {
+  try {
+    const { skills } = req.query;
+    const skillList = skills ? skills.split(',') : ['software engineer'];
+    const topSkill = skillList[0];
+
+    const options = {
+      method: 'GET',
+      url: 'https://jsearch.p.rapidapi.com/search-v2',
+      params: {
+        query: `${topSkill} jobs`,
+        num_pages: '1',
+        date_posted: 'all',
+        country: 'us',
+        language: 'en'
+      },
+      headers: {
+        'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+        'x-rapidapi-host': 'jsearch.p.rapidapi.com',
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const response = await axios.request(options);
+    const rawJobs = response.data.data?.jobs ||
+      response.data.jobs ||
+      response.data.data || [];
+
+    const jobs = rawJobs.map(job => ({
+      id: job.job_id,
+      title: job.job_title,
+      company: job.employer_name,
+      location: `${job.job_city || ''} ${job.job_country || ''}`.trim(),
+      employment_type: job.job_employment_type || 'Full-time',
+      posted_date: job.job_posted_at_datetime_utc,
+      apply_url: job.job_apply_link,
+      source: 'JSearch'
+    }));
+
+    res.json({ success: true, count: jobs.length, jobs });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

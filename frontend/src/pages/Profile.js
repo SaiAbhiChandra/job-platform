@@ -18,6 +18,7 @@ function Profile() {
   const [matchedJobs, setMatchedJobs] = useState([]);
   const [matchLoading, setMatchLoading] = useState(false);
   const [extractedSkills, setExtractedSkills] = useState([]);
+  const [jobTitles, setJobTitles] = useState([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -79,28 +80,19 @@ function Profile() {
 
   const extractSkillsWithAI = async (resumeText) => {
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 500,
-          messages: [{
-            role: 'user',
-            content: `Extract the top 8 technical skills and job titles from this resume text. Return ONLY a JSON array of strings, no explanation:
-            
-${resumeText}
-
-Example output: ["Python", "Machine Learning", "React", "Data Science"]`
-          }]
-        })
+      const res = await axios.post(`${API}/api/jobs/analyze-resume`, {
+        resumeText
       });
-      const data = await response.json();
-      const text = data.content[0].text;
-      const clean = text.replace(/```json|```/g, '').trim();
-      return JSON.parse(clean);
+      if (res.data.success) {
+        return {
+          skills: res.data.skills || [],
+          jobTitles: res.data.jobTitles || []
+        };
+      }
+      return { skills: [], jobTitles: [] };
     } catch (err) {
-      return ['Software Engineer', 'Python', 'JavaScript'];
+      console.error(err);
+      return { skills: ['Software Engineer'], jobTitles: ['Software Engineer'] };
     }
   };
 
@@ -108,9 +100,9 @@ Example output: ["Python", "Machine Learning", "React", "Data Science"]`
     setMatchLoading(true);
     setMatchedJobs([]);
     try {
-      const topSkill = skills[0] || 'software engineer';
+      const skillsParam = skills.slice(0, 3).join(',');
       const res = await axios.get(
-        `${API}/api/jobs/jsearch?keyword=${topSkill}`
+        `${API}/api/jobs/matched-jobs?skills=${encodeURIComponent(skillsParam)}`
       );
       if (res.data.success) {
         setMatchedJobs(res.data.jobs.slice(0, 6));
@@ -161,7 +153,8 @@ Example output: ["Python", "Machine Learning", "React", "Data Science"]`
         const resumeText = await extractTextFromPDF(file);
         if (resumeText) {
           setUploadSuccess('Analyzing your resume with AI...');
-          skills = await extractSkillsWithAI(resumeText);
+          const result = await extractSkillsWithAI(resumeText);
+skills = result.skills;
         }
       }
 
@@ -170,6 +163,7 @@ Example output: ["Python", "Machine Learning", "React", "Data Science"]`
       }
 
       setExtractedSkills(skills);
+      if (result.jobTitles) setJobTitles(result.jobTitles);
 
       await supabase.from('profiles').update({
         resume_url: urlData?.signedUrl,
@@ -349,6 +343,29 @@ Example output: ["Python", "Machine Learning", "React", "Data Science"]`
             <div style={styles.skillsGrid}>
               {extractedSkills.map((skill, i) => (
                 <span key={i} style={styles.skillChip}>{skill}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Job Titles */}
+        {jobTitles.length > 0 && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>🎯 Suggested Job Titles for You</h2>
+            <div style={styles.skillsGrid}>
+              {jobTitles.map((title, i) => (
+                <span
+                  key={i}
+                  style={{
+                    ...styles.skillChip,
+                    background: '#dbeafe',
+                    color: '#1d4ed8',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => navigate(`/jobs?q=${encodeURIComponent(title)}`)}
+                >
+                  {title} →
+                </span>
               ))}
             </div>
           </div>
