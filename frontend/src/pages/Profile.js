@@ -149,22 +149,24 @@ function Profile() {
       setUploadSuccess('Resume uploaded! Extracting skills...');
 
       let skills = [];
+      let extractedJobTitles = [];
+
       if (file.type === 'application/pdf') {
-  const resumeText = await extractTextFromPDF(file);
-  if (resumeText) {
-    setUploadSuccess('Analyzing your resume with AI...');
-    const result = await extractSkillsWithAI(resumeText);
-    skills = result.skills || [];
-    if (result.jobTitles) setJobTitles(result.jobTitles);
-  }
-}
+        const resumeText = await extractTextFromPDF(file);
+        if (resumeText) {
+          setUploadSuccess('Analyzing your resume with AI...');
+          const result = await extractSkillsWithAI(resumeText);
+          skills = result.skills || [];
+          extractedJobTitles = result.jobTitles || [];
+        }
+      }
 
       if (skills.length === 0) {
         skills = ['Software Engineer', 'Python', 'JavaScript', 'React'];
       }
 
       setExtractedSkills(skills);
-      if (result.jobTitles) setJobTitles(result.jobTitles);
+      setJobTitles(extractedJobTitles);
 
       await supabase.from('profiles').update({
         resume_url: urlData?.signedUrl,
