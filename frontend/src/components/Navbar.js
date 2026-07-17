@@ -19,33 +19,41 @@ function Navbar() {
           <Link to="/saved" style={styles.link}>Saved Jobs</Link>
         )}
         {user ? (
-          <>
-            <span
-  style={{...styles.userBadge, cursor: 'pointer'}}
-  onClick={() => navigate('/profile')}
->
-  {user.user_metadata?.full_name || user.email.split('@')[0]}
-</span>
-            <button style={styles.btnOutline} onClick={handleSignOut}>
-              Log out
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              style={styles.btnOutline}
-              onClick={() => navigate('/auth')}
-            >
-              Log in
-            </button>
-            <button
-              style={styles.btnPrimary}
-              onClick={() => navigate('/auth')}
-            >
-              Sign up free
-            </button>
-          </>
-        )}
+  <>
+    <span
+      style={{...styles.userBadge, cursor: 'pointer'}}
+      onClick={() => navigate('/profile')}
+      title="View your profile"
+    >
+      {user.user_metadata?.full_name || user.email.split('@')[0]}
+    </span>
+    <button
+      style={styles.btnOutline}
+      onClick={handleSignOut}
+      title="Log out of TrueJobs"
+    >
+      Log out
+    </button>
+  </>
+) : (
+  <>
+    <button
+      style={styles.btnOutline}
+      onClick={() => navigate('/auth')}
+      title="Log in to your account"
+    >
+      Log in
+    </button>
+    <button
+      style={styles.btnPrimary}
+      onClick={() => navigate('/auth')}
+      title="Create a free account"
+    >
+      Sign up free
+    </button>
+  </>
+)}
+
       </div>
     </nav>
   );

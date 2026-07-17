@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,24 +12,34 @@ function Profile() {
   const [uploadError, setUploadError] = useState('');
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    fetchProfile();
+    if (!user) { navigate('/auth'); return; }
+    initProfile();
     fetchSavedJobsCount();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const fetchProfile = async () => {
-    const { data } = await supabase
+  const initProfile = async () => {
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
-    if (data) setProfile(data);
+
+    if (error || !data) {
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.email.split('@')[0],
+      });
+      const { data: newData } = await supabase
+        .from('profiles').select('*').eq('id', user.id).single();
+      setProfile(newData);
+    } else {
+      setProfile(data);
+    }
   };
 
   const fetchSavedJobsCount = async () => {
@@ -42,13 +52,12 @@ function Profile() {
 
   const handleUpload = async (file) => {
     if (!file) return;
-
     if (file.size > 5 * 1024 * 1024) {
       setUploadError('File too large. Max size is 5MB.');
       return;
     }
-
-    const allowed = ['application/pdf',
+    const allowed = [
+      'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
@@ -65,33 +74,31 @@ function Profile() {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/resume.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: upErr } = await supabase.storage
         .from('resumes')
         .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
+      if (upErr) throw upErr;
 
       const { data: urlData } = await supabase.storage
         .from('resumes')
         .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
-      await supabase.from('profiles').update({
-        resume_url: urlData?.signedUrl,
-        resume_name: file.name,
-      }).eq('id', user.id);
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({
+          resume_url: urlData?.signedUrl,
+          resume_name: file.name,
+        })
+        .eq('id', user.id);
 
-      setUploadSuccess(`✅ ${file.name} uploaded successfully!`);
-      fetchProfile();
+      if (updateErr) throw updateErr;
+
+      setUploadSuccess(`Resume uploaded successfully!`);
+      await initProfile();
     } catch (err) {
       setUploadError(err.message);
     }
-
     setUploading(false);
-  };
-
-  const handleFileInput = (e) => {
-    const file = e.target.files[0];
-    if (file) handleUpload(file);
   };
 
   const handleDrop = (e) => {
@@ -107,22 +114,14 @@ function Profile() {
       await supabase.storage
         .from('resumes')
         .remove([`${user.id}/resume.${ext}`]);
-
-      await supabase.from('profiles').update({
-        resume_url: null,
-        resume_name: null,
-      }).eq('id', user.id);
-
+      await supabase.from('profiles')
+        .update({ resume_url: null, resume_name: null })
+        .eq('id', user.id);
       setProfile({ ...profile, resume_url: null, resume_name: null });
-      setUploadSuccess('Resume deleted successfully.');
+      setUploadSuccess('Resume deleted.');
     } catch (err) {
       setUploadError(err.message);
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
   };
 
   if (!user) return null;
@@ -145,44 +144,48 @@ function Profile() {
               Member since {new Date(user.created_at).toLocaleDateString()}
             </p>
           </div>
-          <button style={styles.signOutBtn} onClick={handleSignOut}>
+          <button
+            style={styles.signOutBtn}
+            title="Log out of TrueJobs"
+            onClick={async () => { await signOut(); navigate('/'); }}
+          >
             Log out
           </button>
         </div>
 
         {/* Stats */}
         <div style={styles.statsRow}>
-          <div style={styles.statCard}>
+          <div
+            style={styles.statCard}
+            title="View your saved jobs"
+            onClick={() => navigate('/saved')}
+          >
             <p style={styles.statNum}>{savedJobsCount}</p>
             <p style={styles.statLabel}>Saved Jobs</p>
           </div>
-          <div style={styles.statCard}>
+          <div style={styles.statCard} title="Resume upload status">
             <p style={styles.statNum}>
               {profile?.resume_name ? '✅' : '❌'}
             </p>
             <p style={styles.statLabel}>Resume Uploaded</p>
           </div>
-          <div style={styles.statCard}>
+          <div style={styles.statCard} title="Your profile is active">
             <p style={styles.statNum}>🟢</p>
             <p style={styles.statLabel}>Profile Active</p>
           </div>
         </div>
 
-        {/* Resume Upload */}
+        {/* Resume Section */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>📄 Your Resume</h2>
           <p style={styles.sectionDesc}>
             Upload your CV/Resume (PDF or Word). Max size 5MB.
           </p>
 
-          {uploadError && (
-            <div style={styles.error}>{uploadError}</div>
-          )}
-          {uploadSuccess && (
-            <div style={styles.success}>{uploadSuccess}</div>
-          )}
+          {uploadError && <div style={styles.error}>{uploadError}</div>}
+          {uploadSuccess && <div style={styles.success}>✅ {uploadSuccess}</div>}
 
-          {profile?.resume_name ? (
+          {profile?.resume_name && (
             <div style={styles.resumeCard}>
               <div style={styles.resumeInfo}>
                 <span style={styles.resumeIcon}>📄</span>
@@ -197,50 +200,53 @@ function Profile() {
                   target="_blank"
                   rel="noreferrer"
                   style={styles.viewBtn}
+                  title="View your uploaded resume"
                 >
-                  View
+                  View Resume
                 </a>
                 <button
                   style={styles.deleteBtn}
                   onClick={handleDeleteResume}
+                  title="Delete this resume"
                 >
                   Delete
                 </button>
               </div>
             </div>
-          ) : null}
+          )}
 
           <div
             style={{
               ...styles.dropZone,
               ...(dragOver ? styles.dropZoneActive : {}),
             }}
-            onDragOver={e => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            onClick={() => document.getElementById('resumeInput').click()}
+            onClick={() => fileInputRef.current.click()}
+            title="Click or drag to upload resume"
           >
             <input
-              id="resumeInput"
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.doc,.docx"
               style={{ display: 'none' }}
-              onChange={handleFileInput}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (file) handleUpload(file);
+              }}
             />
             {uploading ? (
               <>
                 <div style={styles.uploadSpinner} />
-                <p style={styles.dropText}>Uploading...</p>
+                <p style={styles.dropText}>Uploading your resume...</p>
               </>
             ) : (
               <>
                 <p style={styles.uploadIcon}>☁️</p>
                 <p style={styles.dropText}>
                   {profile?.resume_name
-                    ? 'Drop new file to replace current resume'
+                    ? 'Drop new file to replace resume'
                     : 'Drag & drop your resume here'}
                 </p>
                 <p style={styles.dropSubtext}>or click to browse files</p>
@@ -257,18 +263,21 @@ function Profile() {
             <button
               style={styles.quickBtn}
               onClick={() => navigate('/jobs')}
+              title="Search all verified jobs"
             >
               🔍 Browse Jobs
             </button>
             <button
               style={styles.quickBtn}
               onClick={() => navigate('/saved')}
+              title="View your saved jobs"
             >
-              🔖 Saved Jobs
+              🔖 Saved Jobs ({savedJobsCount})
             </button>
             <button
               style={styles.quickBtn}
               onClick={() => navigate('/')}
+              title="Go to homepage"
             >
               🏠 Home
             </button>
@@ -313,9 +322,7 @@ const styles = {
     fontWeight: '700',
     flexShrink: 0,
   },
-  profileInfo: {
-    flex: 1,
-  },
+  profileInfo: { flex: 1 },
   profileName: {
     fontSize: '22px',
     fontWeight: '700',
@@ -352,6 +359,7 @@ const styles = {
     borderRadius: '12px',
     padding: '20px',
     textAlign: 'center',
+    cursor: 'pointer',
   },
   statNum: {
     fontSize: '28px',
@@ -408,15 +416,15 @@ const styles = {
     borderRadius: '10px',
     padding: '14px 18px',
     marginBottom: '16px',
+    flexWrap: 'wrap',
+    gap: '12px',
   },
   resumeInfo: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
   },
-  resumeIcon: {
-    fontSize: '28px',
-  },
+  resumeIcon: { fontSize: '28px' },
   resumeName: {
     fontSize: '14px',
     fontWeight: '600',
@@ -455,7 +463,6 @@ const styles = {
     padding: '40px 20px',
     textAlign: 'center',
     cursor: 'pointer',
-    transition: 'all 0.2s',
     background: '#fafafa',
   },
   dropZoneActive: {
