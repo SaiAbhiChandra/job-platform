@@ -20,9 +20,12 @@ function Navbar() {
         )}
         {user ? (
           <>
-            <span style={styles.userBadge}>
-              {user.user_metadata?.full_name || user.email.split('@')[0]}
-            </span>
+            <span
+  style={{...styles.userBadge, cursor: 'pointer'}}
+  onClick={() => navigate('/profile')}
+>
+  {user.user_metadata?.full_name || user.email.split('@')[0]}
+</span>
             <button style={styles.btnOutline} onClick={handleSignOut}>
               Log out
             </button>
