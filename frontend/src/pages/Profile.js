@@ -150,13 +150,14 @@ function Profile() {
 
       let skills = [];
       if (file.type === 'application/pdf') {
-        const resumeText = await extractTextFromPDF(file);
-        if (resumeText) {
-          setUploadSuccess('Analyzing your resume with AI...');
-          const result = await extractSkillsWithAI(resumeText);
-skills = result.skills;
-        }
-      }
+  const resumeText = await extractTextFromPDF(file);
+  if (resumeText) {
+    setUploadSuccess('Analyzing your resume with AI...');
+    const result = await extractSkillsWithAI(resumeText);
+    skills = result.skills || [];
+    if (result.jobTitles) setJobTitles(result.jobTitles);
+  }
+}
 
       if (skills.length === 0) {
         skills = ['Software Engineer', 'Python', 'JavaScript', 'React'];
