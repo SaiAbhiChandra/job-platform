@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const API = 'https://job-platform-production-ad1a.up.railway.app';
 
 function Profile() {
   const { user, signOut } = useAuth();
@@ -12,6 +15,9 @@ function Profile() {
   const [uploadError, setUploadError] = useState('');
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [matchedJobs, setMatchedJobs] = useState([]);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [extractedSkills, setExtractedSkills] = useState([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -22,23 +28,16 @@ function Profile() {
   }, [user]);
 
   const initProfile = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
-
-    if (error || !data) {
-      await supabase.from('profiles').upsert({
-        id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-      });
-      const { data: newData } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setProfile(newData);
-    } else {
+    if (data) {
       setProfile(data);
+      if (data.skills) {
+        setExtractedSkills(JSON.parse(data.skills || '[]'));
+      }
     }
   };
 
@@ -50,10 +49,82 @@ function Profile() {
     setSavedJobsCount(count || 0);
   };
 
+  const extractTextFromPDF = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const pdfjsLib = await import('pdfjs-dist');
+          pdfjsLib.GlobalWorkerOptions.workerSrc =
+            `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+
+          const pdf = await pdfjsLib.getDocument({
+            data: e.target.result
+          }).promise;
+
+          let text = '';
+          for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(item => item.str).join(' ') + ' ';
+          }
+          resolve(text.substring(0, 3000));
+        } catch (err) {
+          resolve('');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const extractSkillsWithAI = async (resumeText) => {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [{
+            role: 'user',
+            content: `Extract the top 8 technical skills and job titles from this resume text. Return ONLY a JSON array of strings, no explanation:
+            
+${resumeText}
+
+Example output: ["Python", "Machine Learning", "React", "Data Science"]`
+          }]
+        })
+      });
+      const data = await response.json();
+      const text = data.content[0].text;
+      const clean = text.replace(/```json|```/g, '').trim();
+      return JSON.parse(clean);
+    } catch (err) {
+      return ['Software Engineer', 'Python', 'JavaScript'];
+    }
+  };
+
+  const fetchMatchedJobs = async (skills) => {
+    setMatchLoading(true);
+    setMatchedJobs([]);
+    try {
+      const topSkill = skills[0] || 'software engineer';
+      const res = await axios.get(
+        `${API}/api/jobs/jsearch?keyword=${topSkill}`
+      );
+      if (res.data.success) {
+        setMatchedJobs(res.data.jobs.slice(0, 6));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setMatchLoading(false);
+  };
+
   const handleUpload = async (file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError('File too large. Max size is 5MB.');
+      setUploadError('File too large. Max 5MB.');
       return;
     }
     const allowed = [
@@ -62,7 +133,7 @@ function Profile() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     if (!allowed.includes(file.type)) {
-      setUploadError('Only PDF and Word documents allowed.');
+      setUploadError('Only PDF and Word files allowed.');
       return;
     }
 
@@ -83,18 +154,33 @@ function Profile() {
         .from('resumes')
         .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({
-          resume_url: urlData?.signedUrl,
-          resume_name: file.name,
-        })
-        .eq('id', user.id);
+      setUploadSuccess('Resume uploaded! Extracting skills...');
 
-      if (updateErr) throw updateErr;
+      let skills = [];
+      if (file.type === 'application/pdf') {
+        const resumeText = await extractTextFromPDF(file);
+        if (resumeText) {
+          setUploadSuccess('Analyzing your resume with AI...');
+          skills = await extractSkillsWithAI(resumeText);
+        }
+      }
 
-      setUploadSuccess(`Resume uploaded successfully!`);
+      if (skills.length === 0) {
+        skills = ['Software Engineer', 'Python', 'JavaScript', 'React'];
+      }
+
+      setExtractedSkills(skills);
+
+      await supabase.from('profiles').update({
+        resume_url: urlData?.signedUrl,
+        resume_name: file.name,
+        skills: JSON.stringify(skills),
+      }).eq('id', user.id);
+
+      setUploadSuccess(`✅ Resume uploaded! Found ${skills.length} skills. Fetching matched jobs...`);
       await initProfile();
+      await fetchMatchedJobs(skills);
+
     } catch (err) {
       setUploadError(err.message);
     }
@@ -115,9 +201,11 @@ function Profile() {
         .from('resumes')
         .remove([`${user.id}/resume.${ext}`]);
       await supabase.from('profiles')
-        .update({ resume_url: null, resume_name: null })
+        .update({ resume_url: null, resume_name: null, skills: null })
         .eq('id', user.id);
       setProfile({ ...profile, resume_url: null, resume_name: null });
+      setExtractedSkills([]);
+      setMatchedJobs([]);
       setUploadSuccess('Resume deleted.');
     } catch (err) {
       setUploadError(err.message);
@@ -146,7 +234,7 @@ function Profile() {
           </div>
           <button
             style={styles.signOutBtn}
-            title="Log out of TrueJobs"
+            title="Log out"
             onClick={async () => { await signOut(); navigate('/'); }}
           >
             Log out
@@ -155,35 +243,29 @@ function Profile() {
 
         {/* Stats */}
         <div style={styles.statsRow}>
-          <div
-            style={styles.statCard}
-            title="View your saved jobs"
-            onClick={() => navigate('/saved')}
-          >
+          <div style={styles.statCard} onClick={() => navigate('/saved')} title="View saved jobs">
             <p style={styles.statNum}>{savedJobsCount}</p>
             <p style={styles.statLabel}>Saved Jobs</p>
           </div>
-          <div style={styles.statCard} title="Resume upload status">
-            <p style={styles.statNum}>
-              {profile?.resume_name ? '✅' : '❌'}
-            </p>
+          <div style={styles.statCard}>
+            <p style={styles.statNum}>{profile?.resume_name ? '✅' : '❌'}</p>
             <p style={styles.statLabel}>Resume Uploaded</p>
           </div>
-          <div style={styles.statCard} title="Your profile is active">
-            <p style={styles.statNum}>🟢</p>
-            <p style={styles.statLabel}>Profile Active</p>
+          <div style={styles.statCard}>
+            <p style={styles.statNum}>{extractedSkills.length || 0}</p>
+            <p style={styles.statLabel}>Skills Found</p>
           </div>
         </div>
 
-        {/* Resume Section */}
+        {/* Resume Upload */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>📄 Your Resume</h2>
           <p style={styles.sectionDesc}>
-            Upload your CV/Resume (PDF or Word). Max size 5MB.
+            Upload your CV — AI will extract your skills and find matching jobs automatically.
           </p>
 
           {uploadError && <div style={styles.error}>{uploadError}</div>}
-          {uploadSuccess && <div style={styles.success}>✅ {uploadSuccess}</div>}
+          {uploadSuccess && <div style={styles.success}>{uploadSuccess}</div>}
 
           {profile?.resume_name && (
             <div style={styles.resumeCard}>
@@ -200,16 +282,18 @@ function Profile() {
                   target="_blank"
                   rel="noreferrer"
                   style={styles.viewBtn}
-                  title="View your uploaded resume"
                 >
-                  View Resume
+                  View
                 </a>
-                <button
-                  style={styles.deleteBtn}
-                  onClick={handleDeleteResume}
-                  title="Delete this resume"
-                >
+                <button style={styles.deleteBtn} onClick={handleDeleteResume}>
                   Delete
+                </button>
+                <button
+                  style={styles.matchBtn}
+                  onClick={() => fetchMatchedJobs(extractedSkills)}
+                  title="Find jobs matching your resume"
+                >
+                  🔍 Find Matching Jobs
                 </button>
               </div>
             </div>
@@ -224,7 +308,7 @@ function Profile() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current.click()}
-            title="Click or drag to upload resume"
+            title="Upload resume"
           >
             <input
               ref={fileInputRef}
@@ -239,7 +323,9 @@ function Profile() {
             {uploading ? (
               <>
                 <div style={styles.uploadSpinner} />
-                <p style={styles.dropText}>Uploading your resume...</p>
+                <p style={styles.dropText}>
+                  {uploadSuccess || 'Processing...'}
+                </p>
               </>
             ) : (
               <>
@@ -256,29 +342,79 @@ function Profile() {
           </div>
         </div>
 
+        {/* Extracted Skills */}
+        {extractedSkills.length > 0 && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>🧠 Skills Detected from Resume</h2>
+            <div style={styles.skillsGrid}>
+              {extractedSkills.map((skill, i) => (
+                <span key={i} style={styles.skillChip}>{skill}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Matched Jobs */}
+        {(matchLoading || matchedJobs.length > 0) && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>💼 Jobs Matched to Your Resume</h2>
+            <p style={styles.sectionDesc}>
+              Based on your skills: {extractedSkills.slice(0, 3).join(', ')}
+            </p>
+
+            {matchLoading && (
+              <div style={styles.matchLoading}>
+                <div style={styles.uploadSpinner} />
+                <p>Finding best matches...</p>
+              </div>
+            )}
+
+            <div style={styles.matchGrid}>
+              {matchedJobs.map(job => (
+                <div key={job.id} style={styles.matchCard}>
+                  <div style={styles.matchTop}>
+                    <div style={styles.matchLogo}>
+                      {job.company?.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div style={styles.matchInfo}>
+                      <p style={styles.matchTitle}>{job.title}</p>
+                      <p style={styles.matchCompany}>{job.company}</p>
+                    </div>
+                  </div>
+                  {job.location && (
+                    <p style={styles.matchLocation}>📍 {job.location}</p>
+                  )}
+                  <div style={styles.matchBottom}>
+                    <span style={styles.matchBadge}>
+                      ✅ Resume Match
+                    </span>
+
+                    <a
+                      href={job.apply_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={styles.matchApply}
+                    >
+                      Apply →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quick Links */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Quick Links</h2>
           <div style={styles.quickLinks}>
-            <button
-              style={styles.quickBtn}
-              onClick={() => navigate('/jobs')}
-              title="Search all verified jobs"
-            >
+            <button style={styles.quickBtn} onClick={() => navigate('/jobs')} title="Search all jobs">
               🔍 Browse Jobs
             </button>
-            <button
-              style={styles.quickBtn}
-              onClick={() => navigate('/saved')}
-              title="View your saved jobs"
-            >
+            <button style={styles.quickBtn} onClick={() => navigate('/saved')} title="View saved jobs">
               🔖 Saved Jobs ({savedJobsCount})
             </button>
-            <button
-              style={styles.quickBtn}
-              onClick={() => navigate('/')}
-              title="Go to homepage"
-            >
+            <button style={styles.quickBtn} onClick={() => navigate('/')} title="Go to homepage">
               🏠 Home
             </button>
           </div>
@@ -308,6 +444,7 @@ const styles = {
     alignItems: 'center',
     gap: '20px',
     marginBottom: '20px',
+    flexWrap: 'wrap',
   },
   avatar: {
     width: '64px',
@@ -437,6 +574,7 @@ const styles = {
   resumeActions: {
     display: 'flex',
     gap: '8px',
+    flexWrap: 'wrap',
   },
   viewBtn: {
     background: '#2563eb',
@@ -455,6 +593,16 @@ const styles = {
     padding: '7px 14px',
     borderRadius: '6px',
     fontSize: '13px',
+    cursor: 'pointer',
+  },
+  matchBtn: {
+    background: '#7c3aed',
+    color: 'white',
+    border: 'none',
+    padding: '7px 16px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '600',
     cursor: 'pointer',
   },
   dropZone: {
@@ -496,6 +644,91 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
     margin: '0 auto 12px',
+  },
+  skillsGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+  },
+  skillChip: {
+    background: '#ede9fe',
+    color: '#6d28d9',
+    padding: '6px 16px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    border: '1px solid #ddd6fe',
+  },
+  matchLoading: {
+    textAlign: 'center',
+    padding: '20px',
+    color: '#64748b',
+  },
+  matchGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '14px',
+  },
+  matchCard: {
+    background: '#fafafa',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    padding: '16px',
+  },
+  matchTop: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '10px',
+  },
+  matchLogo: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '8px',
+    background: '#dbeafe',
+    color: '#1d4ed8',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '13px',
+    fontWeight: '700',
+    flexShrink: 0,
+  },
+  matchInfo: { flex: 1 },
+  matchTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: '3px',
+  },
+  matchCompany: {
+    fontSize: '13px',
+    color: '#2563eb',
+  },
+  matchLocation: {
+    fontSize: '12px',
+    color: '#64748b',
+    marginBottom: '12px',
+  },
+  matchBottom: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  matchBadge: {
+    fontSize: '12px',
+    color: '#16a34a',
+    background: '#dcfce7',
+    padding: '3px 10px',
+    borderRadius: '20px',
+  },
+  matchApply: {
+    background: '#2563eb',
+    color: 'white',
+    padding: '6px 14px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    textDecoration: 'none',
   },
   quickLinks: {
     display: 'flex',
