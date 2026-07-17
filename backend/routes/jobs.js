@@ -220,40 +220,105 @@ router.get('/india', async (req, res) => {
     const keyword = req.query.keyword || 'software engineer';
     const location = req.query.location || 'India';
 
-    const options = {
-      method: 'GET',
-      url: 'https://jsearch.p.rapidapi.com/search-v2',
-      params: {
-        query: `${keyword} in ${location}`,
-        num_pages: '1',
-        date_posted: 'all',
-        country: 'in',
-        language: 'en'
-      },
-      headers: {
-        'x-rapidapi-key': process.env.RAPIDAPI_KEY,
-        'x-rapidapi-host': 'jsearch.p.rapidapi.com',
-        'Content-Type': 'application/json'
+    // Try JSearch first
+    try {
+      const options = {
+        method: 'GET',
+        url: 'https://jsearch.p.rapidapi.com/search-v2',
+        params: {
+          query: `${keyword} ${location}`,
+          num_pages: '1',
+          date_posted: 'all',
+          country: 'in',
+          language: 'en'
+        },
+        headers: {
+          'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+          'x-rapidapi-host': 'jsearch.p.rapidapi.com',
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      };
+
+      const response = await axios.request(options);
+      const rawJobs = response.data.data?.jobs ||
+        response.data.jobs ||
+        response.data.data || [];
+
+      if (rawJobs.length > 0) {
+        const jobs = rawJobs.map(job => ({
+          id: job.job_id,
+          title: job.job_title,
+          company: job.employer_name,
+          location: `${job.job_city || ''} ${job.job_state || ''} India`.trim(),
+          employment_type: job.job_employment_type || 'Full-time',
+          posted_date: job.job_posted_at_datetime_utc,
+          apply_url: job.job_apply_link,
+          source: 'LinkedIn / Indeed / Glassdoor'
+        }));
+        return res.json({ success: true, count: jobs.length, jobs });
       }
-    };
+    } catch (jsearchError) {
+      console.log('JSearch failed, trying Adzuna India...');
+    }
 
-    const response = await axios.request(options);
-    const rawJobs = response.data.data?.jobs ||
-      response.data.jobs ||
-      response.data.data || [];
+    // Fallback to Adzuna India
+    try {
+      const adzunaRes = await axios.get(
+        'https://api.adzuna.com/v1/api/jobs/in/search/1',
+        {
+          params: {
+            app_id: process.env.ADZUNA_APP_ID,
+            app_key: process.env.ADZUNA_APP_KEY,
+            what: keyword,
+            where: location !== 'India' ? location : '',
+            results_per_page: 20
+          },
+          timeout: 10000
+        }
+      );
 
-    const jobs = rawJobs.map(job => ({
-      id: job.job_id,
-      title: job.job_title,
-      company: job.employer_name,
-      location: `${job.job_city || ''} ${job.job_state || ''} India`.trim(),
-      employment_type: job.job_employment_type || 'Full-time',
-      posted_date: job.job_posted_at_datetime_utc,
-      apply_url: job.job_apply_link,
-      salary: job.job_min_salary
-        ? `₹${job.job_min_salary}–${job.job_max_salary}`
-        : 'Not disclosed',
-      source: 'JSearch (LinkedIn/Indeed/Glassdoor)'
+      const jobs = adzunaRes.data.results.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company.display_name,
+        location: job.location.display_name,
+        employment_type: 'Full-time',
+        salary_min: job.salary_min,
+        salary_max: job.salary_max,
+        posted_date: job.created,
+        apply_url: job.redirect_url,
+        source: 'Adzuna India'
+      }));
+
+      return res.json({ success: true, count: jobs.length, jobs });
+    } catch (adzunaError) {
+      console.log('Adzuna India failed too');
+    }
+
+    // Final fallback — Adzuna GB with India filter
+    const gbRes = await axios.get(
+      'https://api.adzuna.com/v1/api/jobs/gb/search/1',
+      {
+        params: {
+          app_id: process.env.ADZUNA_APP_ID,
+          app_key: process.env.ADZUNA_APP_KEY,
+          what: keyword,
+          results_per_page: 20
+        },
+        timeout: 10000
+      }
+    );
+
+    const jobs = gbRes.data.results.map(job => ({
+      id: job.id,
+      title: job.title,
+      company: job.company.display_name,
+      location: job.location.display_name,
+      employment_type: 'Full-time',
+      posted_date: job.created,
+      apply_url: job.redirect_url,
+      source: 'Adzuna Global'
     }));
 
     res.json({ success: true, count: jobs.length, jobs });
@@ -261,8 +326,7 @@ router.get('/india', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message,
-      detail: error.response ? error.response.data : 'no response'
+      error: error.message
     });
   }
 });

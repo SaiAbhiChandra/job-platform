@@ -59,18 +59,57 @@ function Home() {
   <div style={styles.marqueeWrapper}>
     <div style={styles.marqueeTrack}>
       {[
-        'Airbnb', 'Stripe', 'Notion', 'Figma', 'Shopify',
-        'Canva', 'GitLab', 'Atlassian', 'Discord', 'Twilio',
-        'Datadog', 'HubSpot', 'Intercom', 'Linear', 'Loom',
-        'Miro', 'Zapier', 'Brex', 'Gusto', 'Rippling',
-        'Plaid', 'Coinbase', 'DoorDash', 'Instacart', 'Buffer',
-        'Airbnb', 'Stripe', 'Notion', 'Figma', 'Shopify',
-        'Canva', 'GitLab', 'Atlassian', 'Discord', 'Twilio',
-        'Datadog', 'HubSpot', 'Intercom', 'Linear', 'Loom',
-        'Miro', 'Zapier', 'Brex', 'Gusto', 'Rippling',
-        'Plaid', 'Coinbase', 'DoorDash', 'Instacart', 'Buffer',
+        { name: 'Airbnb', logo: 'https://logo.clearbit.com/airbnb.com' },
+        { name: 'Stripe', logo: 'https://logo.clearbit.com/stripe.com' },
+        { name: 'Notion', logo: 'https://logo.clearbit.com/notion.so' },
+        { name: 'Figma', logo: 'https://logo.clearbit.com/figma.com' },
+        { name: 'Shopify', logo: 'https://logo.clearbit.com/shopify.com' },
+        { name: 'Canva', logo: 'https://logo.clearbit.com/canva.com' },
+        { name: 'GitLab', logo: 'https://logo.clearbit.com/gitlab.com' },
+        { name: 'Atlassian', logo: 'https://logo.clearbit.com/atlassian.com' },
+        { name: 'Discord', logo: 'https://logo.clearbit.com/discord.com' },
+        { name: 'Twilio', logo: 'https://logo.clearbit.com/twilio.com' },
+        { name: 'Datadog', logo: 'https://logo.clearbit.com/datadoghq.com' },
+        { name: 'HubSpot', logo: 'https://logo.clearbit.com/hubspot.com' },
+        { name: 'Intercom', logo: 'https://logo.clearbit.com/intercom.com' },
+        { name: 'Loom', logo: 'https://logo.clearbit.com/loom.com' },
+        { name: 'Miro', logo: 'https://logo.clearbit.com/miro.com' },
+        { name: 'Zapier', logo: 'https://logo.clearbit.com/zapier.com' },
+        { name: 'Coinbase', logo: 'https://logo.clearbit.com/coinbase.com' },
+        { name: 'DoorDash', logo: 'https://logo.clearbit.com/doordash.com' },
+        { name: 'Brex', logo: 'https://logo.clearbit.com/brex.com' },
+        { name: 'Rippling', logo: 'https://logo.clearbit.com/rippling.com' },
+        // Duplicate for seamless loop
+        { name: 'Airbnb', logo: 'https://logo.clearbit.com/airbnb.com' },
+        { name: 'Stripe', logo: 'https://logo.clearbit.com/stripe.com' },
+        { name: 'Notion', logo: 'https://logo.clearbit.com/notion.so' },
+        { name: 'Figma', logo: 'https://logo.clearbit.com/figma.com' },
+        { name: 'Shopify', logo: 'https://logo.clearbit.com/shopify.com' },
+        { name: 'Canva', logo: 'https://logo.clearbit.com/canva.com' },
+        { name: 'GitLab', logo: 'https://logo.clearbit.com/gitlab.com' },
+        { name: 'Atlassian', logo: 'https://logo.clearbit.com/atlassian.com' },
+        { name: 'Discord', logo: 'https://logo.clearbit.com/discord.com' },
+        { name: 'Twilio', logo: 'https://logo.clearbit.com/twilio.com' },
+        { name: 'Datadog', logo: 'https://logo.clearbit.com/datadoghq.com' },
+        { name: 'HubSpot', logo: 'https://logo.clearbit.com/hubspot.com' },
+        { name: 'Intercom', logo: 'https://logo.clearbit.com/intercom.com' },
+        { name: 'Loom', logo: 'https://logo.clearbit.com/loom.com' },
+        { name: 'Miro', logo: 'https://logo.clearbit.com/miro.com' },
+        { name: 'Zapier', logo: 'https://logo.clearbit.com/zapier.com' },
+        { name: 'Coinbase', logo: 'https://logo.clearbit.com/coinbase.com' },
+        { name: 'DoorDash', logo: 'https://logo.clearbit.com/doordash.com' },
+        { name: 'Brex', logo: 'https://logo.clearbit.com/brex.com' },
+        { name: 'Rippling', logo: 'https://logo.clearbit.com/rippling.com' },
       ].map((c, i) => (
-        <span key={i} style={styles.companyChip}>{c}</span>
+        <div key={i} style={styles.companyChip}>
+          <img
+            src={c.logo}
+            alt={c.name}
+            style={styles.companyLogo}
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+          <span style={styles.companyName}>{c.name}</span>
+        </div>
       ))}
     </div>
   </div>
@@ -215,24 +254,34 @@ const styles = {
   marqueeWrapper: {
     overflow: 'hidden',
     width: '100%',
-    position: 'relative',
   },
   marqueeTrack: {
     display: 'flex',
     gap: '16px',
-    animation: 'marquee 30s linear infinite',
+    animation: 'marquee 35s linear infinite',
     width: 'max-content',
   },
   companyChip: {
-    padding: '8px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 20px',
     border: '1px solid #e2e8f0',
-    borderRadius: '20px',
+    borderRadius: '12px',
+    background: '#f8fafc',
+    flexShrink: 0,
+  },
+  companyLogo: {
+    width: '24px',
+    height: '24px',
+    objectFit: 'contain',
+    borderRadius: '4px',
+  },
+  companyName: {
     fontSize: '14px',
     color: '#475569',
-    background: '#f8fafc',
     fontWeight: '600',
     whiteSpace: 'nowrap',
-    flexShrink: 0,
   },
   features: {
     display: 'grid',
