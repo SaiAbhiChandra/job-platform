@@ -8,6 +8,7 @@ function JobCard({ job }) {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [applied, setApplied] = useState(false);
 
   const initials = job.company
     ? job.company.substring(0, 2).toUpperCase()
@@ -19,15 +20,47 @@ function JobCard({ job }) {
     ? job.company.charCodeAt(0) % colors.length
     : 0;
 
-  const handleSave = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+  const getDaysAgo = (dateStr) => {
+    if (!dateStr) return null;
+    const diff = Math.floor(
+      (new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24)
+    );
+    if (diff === 0) return 'Today';
+    if (diff === 1) return '1 day ago';
+    if (diff > 30) return null;
+    return `${diff} days ago`;
+  };
 
+  const daysAgo = getDaysAgo(job.posted_date);
+  const isExpired = job.posted_date &&
+    (new Date() - new Date(job.posted_date)) / (1000 * 60 * 60 * 24) > 30;
+
+  const handleApply = async () => {
+    if (user && !applied) {
+      try {
+        await supabase.from('applications').insert({
+          user_id: user.id,
+          job_id: String(job.id),
+          job_title: job.title,
+          company: job.company,
+          location: job.location,
+          apply_url: job.apply_url,
+          source: job.source,
+          status: 'Applied',
+        });
+        setApplied(true);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    window.open(job.apply_url, '_blank');
+  };
+
+  const handleSave = async () => {
+    if (!user) { navigate('/auth'); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from('saved_jobs').insert({
+      await supabase.from('saved_jobs').insert({
         user_id: user.id,
         job_id: String(job.id),
         job_title: job.title,
@@ -36,13 +69,14 @@ function JobCard({ job }) {
         apply_url: job.apply_url,
         source: job.source,
       });
-
-      if (!error) setSaved(true);
+      setSaved(true);
     } catch (err) {
       console.error(err);
     }
     setSaving(false);
   };
+
+  if (isExpired) return null;
 
   return (
     <div style={styles.card}>
@@ -68,12 +102,13 @@ function JobCard({ job }) {
         {job.employment_type && (
           <span style={styles.metaItem}>💼 {job.employment_type}</span>
         )}
-        {job.salary_min && job.salary_min !== 'Not disclosed' && (
-          <span style={styles.metaItem}>💰 {job.salary_min}</span>
-        )}
-        {job.posted_date && (
-          <span style={styles.metaItem}>
-            🕐 {new Date(job.posted_date).toLocaleDateString()}
+        {daysAgo && (
+          <span style={{
+            ...styles.metaItem,
+            color: daysAgo === 'Today' ? '#16a34a' : '#64748b',
+            fontWeight: daysAgo === 'Today' ? '600' : '400',
+          }}>
+            🕐 {daysAgo}
           </span>
         )}
       </div>
@@ -83,18 +118,25 @@ function JobCard({ job }) {
           <span style={styles.tagType}>{job.employment_type}</span>
         )}
         <span style={styles.tagSource}>{job.source}</span>
+        {daysAgo === 'Today' && (
+          <span style={styles.tagNew}>🔥 New today</span>
+        )}
+        {applied && (
+          <span style={styles.tagApplied}>✅ Applied</span>
+        )}
       </div>
 
       <div style={styles.bottom}>
         <div style={styles.actions}>
-          <a
-            href={job.apply_url}
-            target="_blank"
-            rel="noreferrer"
-            style={styles.applyBtn}
+          <button
+            style={{
+              ...styles.applyBtn,
+              ...(applied ? styles.applyBtnDone : {}),
+            }}
+            onClick={handleApply}
           >
-            Apply Now →
-          </a>
+            {applied ? '✅ Applied' : 'Apply Now →'}
+          </button>
           <button
             style={{
               ...styles.saveBtn,
@@ -103,7 +145,7 @@ function JobCard({ job }) {
             onClick={handleSave}
             disabled={saving || saved}
           >
-            {saved ? '✅ Saved' : saving ? 'Saving...' : '🔖 Save'}
+            {saved ? '✅ Saved' : saving ? '...' : '🔖 Save'}
           </button>
         </div>
       </div>
@@ -135,9 +177,7 @@ const styles = {
     fontWeight: '700',
     flexShrink: 0,
   },
-  info: {
-    flex: 1,
-  },
+  info: { flex: 1 },
   title: {
     fontSize: '16px',
     fontWeight: '600',
@@ -191,6 +231,22 @@ const styles = {
     color: '#64748b',
     border: '1px solid #e2e8f0',
   },
+  tagNew: {
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    background: '#fef9c3',
+    color: '#854d0e',
+    fontWeight: '500',
+  },
+  tagApplied: {
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    background: '#dcfce7',
+    color: '#15803d',
+    fontWeight: '500',
+  },
   bottom: {
     borderTop: '1px solid #f1f5f9',
     paddingTop: '14px',
@@ -206,8 +262,11 @@ const styles = {
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
-    textDecoration: 'none',
-    display: 'inline-block',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  applyBtnDone: {
+    background: '#15803d',
   },
   saveBtn: {
     background: 'transparent',

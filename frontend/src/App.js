@@ -6,6 +6,7 @@ import Jobs from './pages/Jobs';
 import Auth from './pages/Auth';
 import SavedJobs from './pages/SavedJobs';
 import Profile from './pages/Profile';
+import Applications from './pages/Applications';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/saved" element={<SavedJobs />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/applications" element={<Applications />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

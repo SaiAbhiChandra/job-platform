@@ -18,6 +18,11 @@ function Navbar() {
         {user && (
           <Link to="/saved" style={styles.link}>Saved Jobs</Link>
         )}
+        {user && (
+  <Link to="/applications" style={styles.link} title="Track your job applications">
+    My Applications
+  </Link>
+)}
         {user ? (
   <>
     <span
