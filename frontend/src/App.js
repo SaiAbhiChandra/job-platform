@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import SavedJobs from './pages/SavedJobs';
 import Profile from './pages/Profile';
 import Applications from './pages/Applications';
+import JobDetail from './pages/JobDetail';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/saved" element={<SavedJobs />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/applications" element={<Applications />} />
+          <Route path="/job/:id" element={<JobDetail />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

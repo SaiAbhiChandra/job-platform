@@ -89,7 +89,12 @@ function JobCard({ job }) {
           {initials}
         </div>
         <div style={styles.info}>
-          <h3 style={styles.title}>{job.title}</h3>
+          <h3
+  style={{...styles.title, cursor: 'pointer'}}
+  onClick={() => navigate(`/job/${job.id}`, { state: { job } })}
+>
+  {job.title}
+</h3>
           <p style={styles.company}>{job.company}</p>
         </div>
         <div style={styles.verified}>✅ Verified</div>

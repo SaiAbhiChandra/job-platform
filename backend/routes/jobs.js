@@ -510,4 +510,80 @@ router.get('/matched-jobs', async (req, res) => {
   }
 });
 
+router.post('/match-score', async (req, res) => {
+  try {
+    const { jobTitle, jobDescription, userSkills } = req.body;
+
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: `You are a job matching expert. Analyze this job and candidate.
+
+Job Title: ${jobTitle}
+Job Description: ${jobDescription || 'Not provided'}
+Candidate Skills: ${userSkills.join(', ')}
+
+Return ONLY a JSON object:
+{
+  "score": 75,
+  "matchedSkills": ["Python", "React"],
+  "missingSkills": ["Docker", "Kubernetes"],
+  "interviewQuestions": [
+    "Tell me about your experience with Python?",
+    "How do you handle state management in React?",
+    "Describe a challenging project you completed.",
+    "How do you approach debugging complex issues?",
+    "Where do you see yourself in 5 years?"
+  ],
+  "verdict": "Strong match — apply now"
+}`
+      }]
+    });
+
+    const text = message.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    res.json({ success: true, ...parsed });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/cover-letter', async (req, res) => {
+  try {
+    const { jobTitle, company, userSkills, userName } = req.body;
+
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      messages: [{
+        role: 'user',
+        content: `Write a professional cover letter for:
+Name: ${userName || 'Candidate'}
+Job: ${jobTitle} at ${company}
+Skills: ${userSkills.join(', ')}
+
+Write a compelling 3-paragraph cover letter. Be specific, confident, and professional. Do not use placeholders.`
+      }]
+    });
+
+    res.json({
+      success: true,
+      coverLetter: message.content[0].text
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
