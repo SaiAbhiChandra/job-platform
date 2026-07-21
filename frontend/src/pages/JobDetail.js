@@ -323,6 +323,17 @@ function JobDetail() {
               </div>
             ) : (
               <>
+                {user && skills.length > 0 && !matchLoading && !matchData && (
+                  <div style={styles.loginPrompt}>
+                    <p style={styles.loginText}>Could not load match score. Check your API key.</p>
+                    <button
+                      style={styles.loginBtn}
+                      onClick={() => fetchMatchScore(skills)}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
                 <button
                   style={styles.generateBtn}
                   onClick={fetchCoverLetter}
