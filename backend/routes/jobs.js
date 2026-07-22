@@ -586,4 +586,49 @@ Write a compelling 3-paragraph cover letter. Be specific, confident, and profess
   }
 });
 
+router.post('/match-score', async (req, res) => {
+  try {
+    const { jobTitle, jobDescription, userSkills } = req.body;
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: `You are a job matching expert.
+Job Title: ${jobTitle}
+Candidate Skills: ${(userSkills || []).join(', ')}
+Return ONLY this JSON:
+{"score":75,"matchedSkills":["Python"],"missingSkills":["Docker"],"interviewQuestions":["Tell me about yourself?","Why this role?","Describe a challenge?","Your strengths?","Where in 5 years?"],"verdict":"Good match"}`
+      }]
+    });
+    const text = message.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    res.json({ success: true, ...parsed });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/cover-letter', async (req, res) => {
+  try {
+    const { jobTitle, company, userSkills, userName } = req.body;
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      messages: [{
+        role: 'user',
+        content: `Write a professional 3-paragraph cover letter for ${userName || 'the candidate'} applying for ${jobTitle} at ${company}. Their skills: ${(userSkills || []).join(', ')}. Be specific and confident.`
+      }]
+    });
+    res.json({ success: true, coverLetter: message.content[0].text });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
