@@ -845,25 +845,66 @@ router.get('/matched-jobs', async (req, res) => {
 router.post('/match-score', async (req, res) => {
   try {
     const { jobTitle, jobDescription, userSkills } = req.body;
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: `You are a job matching expert.
+    const skills = userSkills || [];
+
+    try {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are a job matching expert.
 Job Title: ${jobTitle}
 Job Description: ${jobDescription || 'Not provided'}
-Candidate Skills: ${(userSkills || []).join(', ')}
+Candidate Skills: ${skills.join(', ')}
 Return ONLY valid JSON:
 {"score":75,"matchedSkills":["Python","React"],"missingSkills":["Docker"],"interviewQuestions":["Tell me about yourself?","Why this role?","Describe a challenge you faced?","What are your strengths?","Where do you see yourself in 5 years?"],"verdict":"Strong match — apply now"}`
-      }]
+        }]
+      });
+      const text = message.content[0].text;
+      const clean = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      return res.json({ success: true, ...parsed });
+    } catch (aiError) {
+      console.log('AI unavailable, using smart fallback');
+    }
+
+    // Smart fallback without AI
+    const jobWords = (jobTitle + ' ' + (jobDescription || '')).toLowerCase();
+    const commonSkills = ['python','javascript','react','node','sql','java','aws','docker','kubernetes','machine learning','data science','tensorflow','pytorch','excel','power bi','tableau','c++','c#','php','ruby','go','rust','mongodb','postgresql','mysql','redis','git','linux','typescript','vue','angular','django','flask','spring'];
+
+    const matchedSkills = skills.filter(skill =>
+      jobWords.includes(skill.toLowerCase())
+    );
+    const missingSkills = commonSkills
+      .filter(s => jobWords.includes(s) && !skills.map(x=>x.toLowerCase()).includes(s))
+      .slice(0, 4);
+
+    const score = Math.min(95, Math.max(20,
+      Math.round((matchedSkills.length / Math.max(skills.length, 1)) * 100)
+    ));
+
+    const verdict = score >= 70 ? 'Strong match — apply now'
+      : score >= 40 ? 'Moderate match — worth applying'
+      : 'Partial match — consider upskilling';
+
+    res.json({
+      success: true,
+      score,
+      matchedSkills,
+      missingSkills,
+      interviewQuestions: [
+        `Tell me about your experience relevant to ${jobTitle}?`,
+        'Describe a challenging project you successfully completed.',
+        'How do you keep your technical skills up to date?',
+        'What is your biggest professional achievement?',
+        'Where do you see yourself in 5 years?'
+      ],
+      verdict
     });
-    const text = message.content[0].text;
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    res.json({ success: true, ...parsed });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -872,17 +913,39 @@ Return ONLY valid JSON:
 router.post('/cover-letter', async (req, res) => {
   try {
     const { jobTitle, company, userSkills, userName } = req.body;
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      messages: [{
-        role: 'user',
-        content: `Write a professional 3-paragraph cover letter for ${userName || 'the candidate'} applying for ${jobTitle} at ${company}. Their skills: ${(userSkills || []).join(', ')}. Be specific and confident. No placeholders.`
-      }]
-    });
-    res.json({ success: true, coverLetter: message.content[0].text });
+    const skills = userSkills || [];
+    const name = userName || 'Candidate';
+
+    try {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: `Write a professional 3-paragraph cover letter for ${name} applying for ${jobTitle} at ${company}. Their skills: ${skills.join(', ')}. Be specific and confident. No placeholders.`
+        }]
+      });
+      return res.json({ success: true, coverLetter: message.content[0].text });
+    } catch (aiError) {
+      console.log('AI unavailable, using template fallback');
+    }
+
+    // Template fallback
+    const coverLetter = `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobTitle} position at ${company}. With my expertise in ${skills.slice(0, 3).join(', ')}, I am confident that I can make a significant contribution to your team and help drive the company's goals forward.
+
+Throughout my career, I have developed strong skills in ${skills.join(', ')}. I have consistently delivered high-quality results and thrive in collaborative environments. I am particularly drawn to ${company} because of its reputation for innovation and excellence in the industry.
+
+I am excited about the opportunity to bring my unique blend of skills and experience to the ${jobTitle} role at ${company}. I would welcome the chance to discuss how my background aligns with your team's needs. Thank you for considering my application.
+
+Sincerely,
+${name}`;
+
+    res.json({ success: true, coverLetter });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
