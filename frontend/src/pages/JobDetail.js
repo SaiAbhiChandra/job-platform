@@ -21,6 +21,8 @@ function JobDetail() {
   const [applied, setApplied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('match');
+  const [tailoredResume, setTailoredResume] = useState('');
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   useEffect(() => {
     if (!job) { navigate('/jobs'); return; }
@@ -72,6 +74,24 @@ function JobDetail() {
       console.error(err);
     }
     setCoverLoading(false);
+  };
+
+  const generateTailoredResume = async () => {
+    setResumeLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/jobs/tailored-resume`, {
+        jobTitle: job.title,
+        company: job.company,
+        userSkills: skills,
+        userName,
+        matchedSkills: matchData?.matchedSkills || [],
+        missingSkills: matchData?.missingSkills || [],
+      });
+      if (res.data.success) setTailoredResume(res.data.resume);
+    } catch (err) {
+      console.error(err);
+    }
+    setResumeLoading(false);
   };
 
   const handleApply = async () => {
@@ -155,8 +175,9 @@ function JobDetail() {
         <div style={styles.tabs}>
           {[
             { key: 'match', label: '🎯 Resume Match' },
-            { key: 'interview', label: '💬 Interview Prep' },
-            { key: 'cover', label: '✉️ Cover Letter' },
+{ key: 'interview', label: '💬 Interview Prep' },
+{ key: 'cover', label: '✉️ Cover Letter' },
+{ key: 'resume', label: '📄 Tailored Resume' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -223,8 +244,14 @@ function JobDetail() {
                       {matchData.verdict}
                     </p>
                     <p style={styles.scoreDesc}>
-                      Based on your resume skills vs job requirements
-                    </p>
+  Based on your resume skills vs job requirements
+</p>
+<button
+  style={styles.generateResumeBtn}
+  onClick={() => setActiveTab('resume')}
+>
+  📄 Generate Tailored Resume for this Job
+</button>
                   </div>
                 </div>
 
@@ -362,7 +389,54 @@ function JobDetail() {
             )}
           </div>
         )}
+        {/* Tailored Resume Tab */}
+        {activeTab === 'resume' && (
+  <div style={styles.section}>
+    <h2 style={styles.sectionTitle}>📄 AI Tailored Resume</h2>
+    <p style={styles.sectionDesc}>
+      Generate a resume optimized for {job.title} at {job.company}
+    </p>
 
+    {!user ? (
+      <div style={styles.loginPrompt}>
+        <p style={styles.loginText}>Login to generate a tailored resume</p>
+        <button style={styles.loginBtn} onClick={() => navigate('/auth')}>Login →</button>
+      </div>
+    ) : skills.length === 0 ? (
+      <div style={styles.loginPrompt}>
+        <p style={styles.loginText}>Upload your resume first</p>
+        <button style={styles.loginBtn} onClick={() => navigate('/profile')}>Upload Resume →</button>
+      </div>
+    ) : (
+      <>
+        <button
+          style={styles.generateBtn}
+          onClick={generateTailoredResume}
+          disabled={resumeLoading}
+        >
+          {resumeLoading ? '⏳ Generating...' : '✨ Generate Tailored Resume'}
+        </button>
+
+        {tailoredResume && (
+          <div style={styles.coverLetterBox}>
+            <div style={styles.coverLetterActions}>
+              <button
+                style={styles.copyBtn}
+                onClick={() => {
+                  navigator.clipboard.writeText(tailoredResume);
+                  alert('Copied! Paste into Word or Google Docs.');
+                }}
+              >
+                📋 Copy Resume
+              </button>
+            </div>
+            <pre style={styles.resumeText}>{tailoredResume}</pre>
+          </div>
+        )}
+      </>
+    )}
+  </div>
+)}
       </div>
     </div>
   );
@@ -679,6 +753,24 @@ const styles = {
     color: '#1e293b',
     lineHeight: '1.8',
     whiteSpace: 'pre-wrap',
+  },
+  generateResumeBtn: {
+    background: '#7c3aed',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '12px',
+  },
+  resumeText: {
+    fontSize: '13px',
+    color: '#1e293b',
+    lineHeight: '1.8',
+    whiteSpace: 'pre-wrap',
+    fontFamily: 'monospace',
   },
 };
 

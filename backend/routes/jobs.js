@@ -951,4 +951,73 @@ ${name}`;
   }
 });
 
+router.post('/tailored-resume', async (req, res) => {
+  try {
+    const { jobTitle, company, userSkills, userName, matchedSkills, missingSkills } = req.body;
+    const name = userName || 'Candidate';
+    const skills = userSkills || [];
+
+    try {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: `Create a professional ATS-optimized resume for ${name} applying for ${jobTitle} at ${company}.
+Their skills: ${skills.join(', ')}.
+Matched skills for this job: ${(matchedSkills || []).join(', ')}.
+Skills to highlight: ${(missingSkills || []).join(', ')}.
+Format it as a clean text resume with sections: Summary, Skills, Experience (create 2 relevant examples), Education, Projects.
+Make it specifically tailored for ${jobTitle} at ${company}. Be specific and professional.`
+        }]
+      });
+      return res.json({ success: true, resume: message.content[0].text });
+    } catch (aiError) {
+      console.log('AI unavailable, using template');
+    }
+
+    // Template fallback
+    const resume = `${name.toUpperCase()}
+Email: your.email@gmail.com | LinkedIn: linkedin.com/in/${name.toLowerCase().replace(' ', '')} | GitHub: github.com/${name.toLowerCase().replace(' ', '')}
+
+PROFESSIONAL SUMMARY
+Results-driven professional with expertise in ${skills.slice(0, 4).join(', ')} seeking ${jobTitle} position at ${company}. Proven track record of delivering high-quality solutions and collaborating effectively in team environments.
+
+TECHNICAL SKILLS
+${skills.join(' • ')}
+
+WORK EXPERIENCE
+Software Developer | Previous Company | 2023 - Present
+- Developed and maintained applications using ${skills[0] || 'relevant technologies'}
+- Collaborated with cross-functional teams to deliver projects on time
+- Improved system performance by 30% through optimization
+
+Junior Developer | Startup | 2022 - 2023
+- Built features using ${skills[1] || 'modern frameworks'}
+- Participated in code reviews and agile development processes
+
+EDUCATION
+B.Tech / M.Tech in Computer Science or Related Field
+University Name | Year of Graduation
+
+PROJECTS
+Project 1 — ${jobTitle} Related Project
+- Built using ${skills.slice(0, 2).join(' and ')}
+- Achieved measurable results
+
+Project 2 — Full Stack Application
+- Implemented ${skills.slice(2, 4).join(' and ')} for backend and frontend
+- Deployed on cloud infrastructure
+
+CERTIFICATIONS
+- Relevant certification for ${jobTitle}`;
+
+    res.json({ success: true, resume });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
