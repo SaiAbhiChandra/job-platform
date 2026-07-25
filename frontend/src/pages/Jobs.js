@@ -51,6 +51,11 @@ function Jobs() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  useEffect(() => {
+    document.title = 'Browse Jobs — TrueJobs | Real Verified Job Listings';
+    return () => { document.title = 'TrueJobs — Find Real Jobs'; };
+  }, []);
+
   const fetchGlobalJobs = async (ind, kw, src, comp) => {
     setLoading(true);
     setJobs([]);

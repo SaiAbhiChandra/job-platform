@@ -1,7 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 function Home() {
   const navigate = useNavigate();
+
+useEffect(() => {
+    document.title = 'TrueJobs — Find Real Jobs, Zero Fake Listings';
+  }, []);
 
   return (
     <div>

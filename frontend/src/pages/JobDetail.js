@@ -30,6 +30,13 @@ function JobDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (job) {
+      document.title = `${job.title} at ${job.company} — TrueJobs`;
+    }
+    return () => { document.title = 'TrueJobs — Find Real Jobs'; };
+  }, [job]);
+
   const fetchUserProfile = async () => {
     const { data } = await supabase
       .from('profiles')
