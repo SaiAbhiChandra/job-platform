@@ -1020,4 +1020,50 @@ CERTIFICATIONS
   }
 });
 
+router.post('/send-alert', async (req, res) => {
+  try {
+    const { to, keyword, jobs, userName } = req.body;
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const jobsHtml = jobs.slice(0, 5).map(job => `
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px;">
+        <h3 style="color:#0f172a;margin:0 0 4px;">${job.title}</h3>
+        <p style="color:#2563eb;margin:0 0 8px;font-weight:600;">${job.company}</p>
+        <p style="color:#64748b;margin:0 0 12px;">📍 ${job.location || 'Location not specified'}</p>
+        <a href="${job.apply_url}" style="background:#2563eb;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;">Apply Now →</a>
+      </div>
+    `).join('');
+
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
+      to,
+      subject: `🔔 ${jobs.length} new "${keyword}" jobs found — TrueJobs`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#2563eb;padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+            <h1 style="color:white;margin:0;font-size:24px;">TrueJobs</h1>
+            <p style="color:#bfdbfe;margin:8px 0 0;">Your daily job alert</p>
+          </div>
+          <div style="background:white;padding:24px;border:1px solid #e2e8f0;">
+            <p style="color:#1e293b;font-size:16px;">Hi ${userName || 'there'},</p>
+            <p style="color:#64748b;">We found <strong>${jobs.length} new jobs</strong> matching "<strong>${keyword}</strong>" for you:</p>
+            ${jobsHtml}
+            <div style="margin-top:24px;text-align:center;">
+              <a href="https://job-platform-wine.vercel.app/jobs" style="background:#2563eb;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">View All Jobs →</a>
+            </div>
+          </div>
+          <div style="background:#f8fafc;padding:16px;text-align:center;border-radius:0 0 12px 12px;">
+            <p style="color:#94a3b8;font-size:13px;margin:0;">TrueJobs — Zero fake listings. Real opportunities.</p>
+          </div>
+        </div>
+      `
+    });
+
+    res.json({ success: true, message: 'Alert email sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

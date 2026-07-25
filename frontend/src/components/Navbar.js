@@ -24,6 +24,7 @@ function Navbar() {
         <div style={styles.desktopLinks} className="desktop-links">
           <Link to="/jobs" style={styles.link}>Browse Jobs</Link>
           {user && <Link to="/saved" style={styles.link}>Saved Jobs</Link>}
+          {user && <Link to="/alerts" style={styles.link}>Job Alerts</Link>}
           {user && <Link to="/applications" style={styles.link}>My Applications</Link>}
           {user ? (
             <>
@@ -57,6 +58,7 @@ function Navbar() {
         <div style={styles.mobileMenu} className="mobile-menu">
           <Link to="/jobs" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>Browse Jobs</Link>
           {user && <Link to="/saved" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>Saved Jobs</Link>}
+          {user && <Link to="/alerts" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>Job Alerts 🔔</Link>}
           {user && <Link to="/applications" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>My Applications</Link>}
           {user && <Link to="/profile" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>Profile</Link>}
           {user ? (
