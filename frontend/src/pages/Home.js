@@ -189,9 +189,11 @@ const styles = {
     borderRadius: '12px',
     border: '1px solid #e2e8f0',
     boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+    flexWrap: 'wrap',
   },
   searchInput: {
     flex: 1,
+    minWidth: '200px',
     padding: '10px 16px',
     border: 'none',
     fontSize: '15px',
@@ -215,6 +217,8 @@ const styles = {
     fontSize: '15px',
     fontWeight: '600',
     whiteSpace: 'nowrap',
+    width: '100%',
+    cursor: 'pointer',
   },
   stats: {
     display: 'flex',

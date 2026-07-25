@@ -37,3 +37,16 @@ input, select {
 .marquee-wrapper:hover .marquee-track {
   animation-play-state: paused;
 }
+
+/* Force hamburger visible on mobile */
+@media (max-width: 768px) {
+  .desktop-links { display: none !important; }
+  .hamburger-btn { display: block !important; }
+  .mobile-menu { display: flex !important; }
+}
+
+@media (min-width: 769px) {
+  .desktop-links { display: flex !important; }
+  .hamburger-btn { display: none !important; }
+  .mobile-menu { display: none !important; }
+}
