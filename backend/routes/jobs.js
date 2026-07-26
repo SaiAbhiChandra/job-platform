@@ -1050,7 +1050,7 @@ router.post('/send-alert', async (req, res) => {
             <p style="color:#64748b;">We found <strong>${jobs.length} new jobs</strong> matching "<strong>${keyword}</strong>" for you:</p>
             ${jobsHtml}
             <div style="margin-top:24px;text-align:center;">
-              <a href="https://job-platform-wine.vercel.app/jobs" style="background:#2563eb;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">View All Jobs →</a>
+              <a href="https://truehire.online/jobs" style="background:#2563eb;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">View All Jobs →</a>
             </div>
           </div>
           <div style="background:#f8fafc;padding:16px;text-align:center;border-radius:0 0 12px 12px;">

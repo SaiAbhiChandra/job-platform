@@ -5,4 +5,4 @@ Disallow: /profile
 Disallow: /saved
 Disallow: /applications
 
-Sitemap: https://job-platform-wine.vercel.app/sitemap.xml
+Sitemap: https://truehire.online/sitemap.xml
