@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import Applications from './pages/Applications';
 import JobDetail from './pages/JobDetail';
 import JobAlerts from './pages/JobAlerts';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/applications" element={<Applications />} />
           <Route path="/job/:id" element={<JobDetail />} />
           <Route path="/alerts" element={<JobAlerts />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
