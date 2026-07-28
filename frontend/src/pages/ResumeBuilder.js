@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { supabase } from '../supabase';
+// import { supabase } from '../supabase';
 import axios from 'axios';
 
 const API = 'https://job-platform-production-ad1a.up.railway.app';
