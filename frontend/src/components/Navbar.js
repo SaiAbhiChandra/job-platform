@@ -27,6 +27,7 @@ function Navbar() {
           {user && <Link to="/alerts" style={styles.link}>Job Alerts</Link>}
           {user && <Link to="/applications" style={styles.link}>My Applications</Link>}
           <Link to="/smart-search" style={styles.link}>🤖 AI Search</Link>
+          <Link to="/resume-builder" style={styles.link}>Resume Builder</Link>
           {user ? (
             <>
               <span
@@ -63,6 +64,7 @@ function Navbar() {
           {user && <Link to="/applications" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>My Applications</Link>}
           {user && <Link to="/profile" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>Profile</Link>}
           <Link to="/smart-search" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>🤖 AI Search</Link>
+          <Link to="/resume-builder" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>📄 Resume Builder</Link>
           {user ? (
             <button style={styles.mobileBtnOutline} onClick={handleSignOut}>Log out</button>
           ) : (

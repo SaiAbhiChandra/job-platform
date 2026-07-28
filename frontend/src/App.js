@@ -11,6 +11,7 @@ import JobDetail from './pages/JobDetail';
 import JobAlerts from './pages/JobAlerts';
 import Admin from './pages/Admin';
 import SmartSearch from './pages/SmartSearch';
+import ResumeBuilder from './pages/ResumeBuilder';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/alerts" element={<JobAlerts />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/smart-search" element={<SmartSearch />} />
+          <Route path="/resume-builder" element={<ResumeBuilder />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
