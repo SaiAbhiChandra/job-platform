@@ -10,6 +10,7 @@ import Applications from './pages/Applications';
 import JobDetail from './pages/JobDetail';
 import JobAlerts from './pages/JobAlerts';
 import Admin from './pages/Admin';
+import SmartSearch from './pages/SmartSearch';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/job/:id" element={<JobDetail />} />
           <Route path="/alerts" element={<JobAlerts />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/smart-search" element={<SmartSearch />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -1066,4 +1066,127 @@ router.post('/send-alert', async (req, res) => {
   }
 });
 
+router.post('/smart-search', async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query) return res.status(400).json({ success: false, error: 'No query' });
+
+    // Fetch jobs from multiple sources
+    const [greenhouseRes, jsearchRes] = await Promise.allSettled([
+      axios.get(`https://boards-api.greenhouse.io/v1/boards/airbnb/jobs`, { timeout: 8000 }),
+      axios.request({
+        method: 'GET',
+        url: 'https://jsearch.p.rapidapi.com/search-v2',
+        params: { query: query.split(' ').slice(0, 3).join(' '), num_pages: '1', date_posted: 'all' },
+        headers: {
+          'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+          'x-rapidapi-host': 'jsearch.p.rapidapi.com'
+        }
+      })
+    ]);
+
+    let allJobs = [];
+
+    if (greenhouseRes.status === 'fulfilled') {
+      const jobs = (greenhouseRes.value.data.jobs || []).slice(0, 20).map(job => ({
+        id: job.id,
+        title: job.title,
+        company: 'airbnb',
+        location: job.location.name,
+        apply_url: job.absolute_url,
+        source: 'Greenhouse'
+      }));
+      allJobs = [...allJobs, ...jobs];
+    }
+
+    if (jsearchRes.status === 'fulfilled') {
+      const rawJobs = jsearchRes.value.data.data?.jobs || jsearchRes.value.data.data || [];
+      const jobs = rawJobs.slice(0, 20).map(job => ({
+        id: job.job_id,
+        title: job.job_title,
+        company: job.employer_name,
+        location: `${job.job_city || ''} ${job.job_country || ''}`.trim(),
+        apply_url: job.job_apply_link,
+        source: 'JSearch'
+      }));
+      allJobs = [...allJobs, ...jobs];
+    }
+
+    if (allJobs.length === 0) {
+      return res.json({ success: true, query, aiSummary: 'No jobs found.', count: 0, jobs: [] });
+    }
+
+    // Use Claude to rank and filter jobs
+    try {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+      const jobsList = allJobs.map((job, i) =>
+        `${i + 1}. ${job.title} at ${job.company} — ${job.location}`
+      ).join('\n');
+
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: `User is looking for: "${query}"
+
+Here are available jobs:
+${jobsList}
+
+Return ONLY a JSON object:
+{
+  "summary": "2 sentence explanation of what you found",
+  "rankedIndices": [3, 1, 7, 2, 5],
+  "reason": "Brief reason why these match"
+}
+
+rankedIndices = array of job numbers (1-based) that best match the query, ordered by relevance. Include only relevant ones.`
+        }]
+      });
+
+      const text = message.content[0].text;
+      const clean = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      const rankedJobs = (parsed.rankedIndices || [])
+        .map(i => allJobs[i - 1])
+        .filter(Boolean)
+        .map(job => ({ ...job, similarity: null }));
+
+      return res.json({
+        success: true,
+        query,
+        aiSummary: parsed.summary,
+        aiReason: parsed.reason,
+        count: rankedJobs.length,
+        jobs: rankedJobs,
+      });
+
+    } catch (aiError) {
+      // Fallback without AI — simple keyword matching
+      const queryWords = query.toLowerCase().split(' ');
+      const filtered = allJobs.filter(job =>
+        queryWords.some(word =>
+          job.title?.toLowerCase().includes(word) ||
+          job.company?.toLowerCase().includes(word) ||
+          job.location?.toLowerCase().includes(word)
+        )
+      );
+
+      return res.json({
+        success: true,
+        query,
+        aiSummary: `Found ${filtered.length} jobs matching "${query}". AI ranking unavailable — add Anthropic credits for smarter results.`,
+        count: filtered.length,
+        jobs: filtered,
+      });
+    }
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
