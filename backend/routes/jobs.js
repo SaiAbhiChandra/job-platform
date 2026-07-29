@@ -677,12 +677,68 @@ router.post('/create-resume-structured', async (req, res) => {
     const Anthropic = require('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
-      messages: [{
-        role: 'user',
-        content: `You are an expert ATS resume writer. Create a tailored resume from the candidate's information for the specific job.
+    const prompt = `You are a world-class ATS resume expert and career coach. Your task is to create a perfectly tailored, ATS-optimized resume that scores 90+ on any ATS scanner.
+
+CANDIDATE'S EXISTING RESUME/INFORMATION:
+${existingResume}
+
+TARGET JOB DESCRIPTION:
+${jobDescription}
+
+INSTRUCTIONS:
+1. Extract the candidate's REAL information only — never fabricate experience or skills they don't have
+2. Tailor the professional summary specifically for this job role using exact keywords from the JD
+3. Rewrite bullet points to highlight achievements relevant to this job, using strong action verbs
+4. Add quantifiable metrics wherever the original resume has them
+5. Include ALL keywords and skills from the JD that the candidate actually has
+6. Organize skills to match what the JD prioritizes
+7. Keep the format clean — no tables, no columns in experience section (ATS friendly)
+
+Return ONLY a valid JSON object:
+{
+  "name": "Candidate's full name from resume",
+  "contact": "email | LinkedIn: url | GitHub: url | Phone: number",
+  "summary": "4 sentence ATS-optimized summary using exact keywords from JD, highlighting why this candidate is perfect for this specific role",
+  "skills": [
+    {"category": "Languages", "items": "list relevant ones"},
+    {"category": "ML/AI Frameworks", "items": "list relevant ones"},
+    {"category": "Tools & Platforms", "items": "list relevant ones"},
+    {"category": "Databases", "items": "list relevant ones"},
+    {"category": "Soft Skills", "items": "Problem-Solving, Team Player, Communication"}
+  ],
+  "experience": [
+    {
+      "role": "Exact job title",
+      "company": "Company name",
+      "date": "Month Year – Month Year",
+      "bullets": [
+        "Strong action verb + specific task + measurable outcome relevant to target job",
+        "Another achievement with numbers/percentage where available"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "title": "Project name",
+      "tech": "Technologies used",
+      "bullets": [
+        "What the project does and how it relates to the target role",
+        "Key metric or achievement (accuracy %, users, performance improvement)"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Full degree name",
+      "school": "University name, Location",
+      "grade": "CGPA: X.X/10 or Percentage",
+      "year": "Start Year – End Year or Expected"
+    }
+  ],
+  "certifications": ["Certification Name — Provider, Year"],
+  "publications": ["Full paper/patent citation"],
+  "achievements": ["Specific achievement with impact"]
+}
 
 CANDIDATE INFO:
 ${existingResume}
@@ -740,7 +796,14 @@ Rules:
 - Quantify achievements wherever possible
 - Make summary specifically address the job requirements
 - Only include information from the candidate's resume — no fabrication
-- Order skills by relevance to job description`
+- Order skills by relevance to job description`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2500,
+      messages: [{
+        role: 'user',
+        content: prompt
       }]
     });
 
@@ -773,6 +836,15 @@ Rules:
         achievements: []
       }
     });
+  }
+});
+
+router.post('/extract-resume-text', async (req, res) => {
+  try {
+    const multer = require('multer');
+    res.json({ success: false, error: 'Use multipart upload' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
