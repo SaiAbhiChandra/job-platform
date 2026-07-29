@@ -554,122 +554,122 @@ rankedIndices = array of job numbers (1-based) that best match the query, ordere
   }
 });
 
-// router.post('/create-resume', async (req, res) => {
-//   try {
-//     const { jobDescription, existingResume, userName, targetRole } = req.body;
+router.post('/create-resume', async (req, res) => {
+  try {
+    const { jobDescription, existingResume, userName, targetRole } = req.body;
 
-//     const Anthropic = require('@anthropic-ai/sdk');
-//     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-//     const message = await client.messages.create({
-//       model: 'claude-sonnet-4-6',
-//       max_tokens: 2000,
-//       messages: [{
-//         role: 'user',
-//         content: `You are an expert resume writer and ATS optimization specialist.
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: `You are an expert resume writer and ATS optimization specialist.
 
-// Job Description:
-// ${jobDescription}
+Job Description:
+${jobDescription}
 
-// Candidate's Existing Resume/Information:
-// ${existingResume}
+Candidate's Existing Resume/Information:
+${existingResume}
 
-// Candidate Name: ${userName || 'Candidate'}
-// Target Role: ${targetRole || 'Not specified'}
+Candidate Name: ${userName || 'Candidate'}
+Target Role: ${targetRole || 'Not specified'}
 
-// Create a perfect ATS-optimized professional resume for this candidate that:
-// 1. Extracts and highlights skills that match the job description
-// 2. Uses exact keywords from the job description naturally
-// 3. Quantifies achievements wherever possible
-// 4. Has a strong professional summary tailored to this specific role
-// 5. Follows standard ATS-friendly format
-// 6. Is honest — only uses information provided, no fabrication
+Create a perfect ATS-optimized professional resume for this candidate that:
+1. Extracts and highlights skills that match the job description
+2. Uses exact keywords from the job description naturally
+3. Quantifies achievements wherever possible
+4. Has a strong professional summary tailored to this specific role
+5. Follows standard ATS-friendly format
+6. Is honest — only uses information provided, no fabrication
 
-// Format the resume exactly like this:
+Format the resume exactly like this:
 
-// [CANDIDATE NAME]
-// Email: [email if provided] | LinkedIn: [if provided] | GitHub: [if provided] | Phone: [if provided]
+[CANDIDATE NAME]
+Email: [email if provided] | LinkedIn: [if provided] | GitHub: [if provided] | Phone: [if provided]
 
-// PROFESSIONAL SUMMARY
-// [3-4 sentences tailored specifically for this job]
+PROFESSIONAL SUMMARY
+[3-4 sentences tailored specifically for this job]
 
-// TECHNICAL SKILLS
-// [Categorized skills that match job requirements]
+TECHNICAL SKILLS
+[Categorized skills that match job requirements]
 
-// WORK EXPERIENCE
-// [Each role with bullet points starting with action verbs, quantified where possible]
+WORK EXPERIENCE
+[Each role with bullet points starting with action verbs, quantified where possible]
 
-// EDUCATION
-// [Education details]
+EDUCATION
+[Education details]
 
-// PROJECTS
-// [Relevant projects with technologies used and impact]
+PROJECTS
+[Relevant projects with technologies used and impact]
 
-// CERTIFICATIONS
-// [If any]
+CERTIFICATIONS
+[If any]
 
-// Make it compelling, professional, and perfectly tailored for the job description provided.`
-//       }]
-//     });
+Make it compelling, professional, and perfectly tailored for the job description provided.`
+      }]
+    });
 
-//     res.json({
-//       success: true,
-//       resume: message.content[0].text
-//     });
+    res.json({
+      success: true,
+      resume: message.content[0].text
+    });
 
-//   } catch (error) {
-//     // Fallback template when AI unavailable
-//     const { jobDescription, existingResume, userName } = req.body;
-//     const name = userName || 'Your Name';
+  } catch (error) {
+    // Fallback template when AI unavailable
+    const { jobDescription, existingResume, userName } = req.body;
+    const name = userName || 'Your Name';
 
-//     const skills = [];
-//     const skillKeywords = ['python', 'javascript', 'react', 'node', 'sql', 'java',
-//       'aws', 'docker', 'machine learning', 'data science', 'tensorflow',
-//       'pytorch', 'typescript', 'vue', 'angular', 'django', 'flask'];
+    const skills = [];
+    const skillKeywords = ['python', 'javascript', 'react', 'node', 'sql', 'java',
+      'aws', 'docker', 'machine learning', 'data science', 'tensorflow',
+      'pytorch', 'typescript', 'vue', 'angular', 'django', 'flask'];
 
-//     skillKeywords.forEach(skill => {
-//       if (jobDescription?.toLowerCase().includes(skill) ||
-//           existingResume?.toLowerCase().includes(skill)) {
-//         skills.push(skill.charAt(0).toUpperCase() + skill.slice(1));
-//       }
-//     });
+    skillKeywords.forEach(skill => {
+      if (jobDescription?.toLowerCase().includes(skill) ||
+          existingResume?.toLowerCase().includes(skill)) {
+        skills.push(skill.charAt(0).toUpperCase() + skill.slice(1));
+      }
+    });
 
-//     const resume = `${name.toUpperCase()}
-// your.email@gmail.com | linkedin.com/in/${name.toLowerCase().replace(/\s/g, '')} | github.com/${name.toLowerCase().replace(/\s/g, '')}
+    const resume = `${name.toUpperCase()}
+your.email@gmail.com | linkedin.com/in/${name.toLowerCase().replace(/\s/g, '')} | github.com/${name.toLowerCase().replace(/\s/g, '')}
 
-// PROFESSIONAL SUMMARY
-// Results-driven professional with strong expertise in ${skills.slice(0, 3).join(', ')}. Proven track record of delivering high-quality solutions and collaborating effectively in fast-paced environments. Passionate about leveraging technology to solve complex problems.
+PROFESSIONAL SUMMARY
+Results-driven professional with strong expertise in ${skills.slice(0, 3).join(', ')}. Proven track record of delivering high-quality solutions and collaborating effectively in fast-paced environments. Passionate about leveraging technology to solve complex problems.
 
-// TECHNICAL SKILLS
-// Languages & Frameworks: ${skills.slice(0, 6).join(', ')}
-// Tools & Technologies: Git, Linux, REST APIs, Agile/Scrum
-// Databases: SQL, NoSQL
+TECHNICAL SKILLS
+Languages & Frameworks: ${skills.slice(0, 6).join(', ')}
+Tools & Technologies: Git, Linux, REST APIs, Agile/Scrum
+Databases: SQL, NoSQL
 
-// WORK EXPERIENCE
-// Software Developer | Company Name | 2023 – Present
-// - Developed and maintained applications using ${skills[0] || 'relevant technologies'}
-// - Collaborated with cross-functional teams to deliver projects on schedule
-// - Improved system performance by 30% through code optimization
-// - Implemented best practices for code quality and documentation
+WORK EXPERIENCE
+Software Developer | Company Name | 2023 – Present
+- Developed and maintained applications using ${skills[0] || 'relevant technologies'}
+- Collaborated with cross-functional teams to deliver projects on schedule
+- Improved system performance by 30% through code optimization
+- Implemented best practices for code quality and documentation
 
-// EDUCATION
-// B.Tech / M.Tech in Computer Science
-// University Name | Year of Graduation | CGPA: X.X/10
+EDUCATION
+B.Tech / M.Tech in Computer Science
+University Name | Year of Graduation | CGPA: X.X/10
 
-// PROJECTS
-// Project Name | ${skills.slice(0, 2).join(', ')}
-// - Built a full-stack application that solved [problem]
-// - Implemented [key features] resulting in [measurable outcome]
-// - Deployed on cloud infrastructure with CI/CD pipeline
+PROJECTS
+Project Name | ${skills.slice(0, 2).join(', ')}
+- Built a full-stack application that solved [problem]
+- Implemented [key features] resulting in [measurable outcome]
+- Deployed on cloud infrastructure with CI/CD pipeline
 
-// CERTIFICATIONS
-// - Add your relevant certifications here
+CERTIFICATIONS
+- Add your relevant certifications here
 
-// NOTE: Add Anthropic API credits for a fully personalized AI-generated resume.`;
+NOTE: Add Anthropic API credits for a fully personalized AI-generated resume.`;
 
-//     res.json({ success: true, resume, fallback: true });
-//   }
-// });
+    res.json({ success: true, resume, fallback: true });
+  }
+});
 
 router.post('/create-resume-structured', async (req, res) => {
   try {
