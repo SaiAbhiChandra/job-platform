@@ -39,14 +39,14 @@ function ResumeBuilder() {
   const [fileUploaded, setFileUploaded] = useState(false);
   const fileInputRef = useRef(null);
 
-  const readFileAsBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+  // const readFileAsBase64 = (file) => {
+  //   return new Promise((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+  //     reader.onerror = reject;
+  //     reader.readAsDataURL(file);
+  //   });
+  // };
 
   const extractTextFromFile = async (file) => {
     setExtracting(true);
