@@ -49,7 +49,7 @@ function InterviewQuestions() {
       const res = await axios.get(`${API}/api/jobs/interview-questions`, { params });
       if (res.data.success) {
         setQuestions(res.data.questions);
-        setStats({ total: res.data.count, companies: COMPANIES.length - 1 });
+        // setStats({ total: res.data.count, companies: COMPANIES.length - 1 });
       }
     } catch (err) { console.error(err); }
     setLoading(false);
