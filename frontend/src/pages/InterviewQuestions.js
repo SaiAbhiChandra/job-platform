@@ -22,7 +22,7 @@ const CAT_COLORS = {
 };
 
 function InterviewQuestions() {
-  const { user } = useAuth();
+//   const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -32,9 +32,9 @@ function InterviewQuestions() {
   const [aiQuestions, setAiQuestions] = useState([]);
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [aiForm, setAiForm] = useState({ company: 'Google', role: 'Software Engineer', category: 'DSA' });
-  const [stats, setStats] = useState({ total: 0, companies: 0 });
+//   const [stats, setStats] = useState({ total: 0, companies: 0 });
 
-  useEffect(() => { fetchQuestions(); }, [filters]);
+//   useEffect(() => { fetchQuestions(); }, [filters]);
 
   const fetchQuestions = async () => {
     setLoading(true);
