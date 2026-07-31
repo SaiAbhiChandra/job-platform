@@ -12,6 +12,7 @@ import JobAlerts from './pages/JobAlerts';
 import Admin from './pages/Admin';
 import SmartSearch from './pages/SmartSearch';
 import ResumeBuilder from './pages/ResumeBuilder';
+import InterviewQuestions from './pages/InterviewQuestions';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/smart-search" element={<SmartSearch />} />
           <Route path="/resume-builder" element={<ResumeBuilder />} />
+          <Route path="/interview-prep" element={<InterviewQuestions />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

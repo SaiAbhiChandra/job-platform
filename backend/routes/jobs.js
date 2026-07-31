@@ -848,4 +848,97 @@ router.post('/extract-resume-text', async (req, res) => {
   }
 });
 
+router.get('/interview-questions', async (req, res) => {
+  try {
+    const { company, role, category, difficulty, search } = req.query;
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+
+    let query = supabase
+      .from('interview_questions')
+      .select('*')
+      .order('upvotes', { ascending: false });
+
+    if (company && company !== 'All') query = query.eq('company', company);
+    if (role && role !== 'All') query = query.eq('role', role);
+    if (category && category !== 'All') query = query.eq('category', category);
+    if (difficulty && difficulty !== 'All') query = query.eq('difficulty', difficulty);
+    if (search) query = query.ilike('question', `%${search}%`);
+
+    const { data, error } = await query.limit(50);
+    if (error) throw error;
+
+    res.json({ success: true, count: data.length, questions: data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/generate-interview-questions', async (req, res) => {
+  try {
+    const { company, role, category } = req.body;
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      messages: [{
+        role: 'user',
+        content: `Generate 10 realistic interview questions for:
+Company: ${company}
+Role: ${role}
+Category: ${category}
+
+Return ONLY a JSON array:
+[
+  {
+    "question": "Question text here",
+    "difficulty": "Easy/Medium/Hard",
+    "hint": "Brief hint or what to focus on",
+    "tags": ["tag1", "tag2"]
+  }
+]
+
+Make questions specific to ${company}'s interview style and ${role} requirements.`
+      }]
+    });
+
+    const text = message.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    const questions = JSON.parse(clean);
+    res.json({ success: true, questions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/upvote-question', async (req, res) => {
+  try {
+    const { questionId } = req.body;
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+    const { data } = await supabase
+      .from('interview_questions')
+      .select('upvotes')
+      .eq('id', questionId)
+      .single();
+
+    await supabase
+      .from('interview_questions')
+      .update({ upvotes: (data?.upvotes || 0) + 1 })
+      .eq('id', questionId);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
