@@ -851,91 +851,50 @@ router.post('/extract-resume-text', async (req, res) => {
 router.get('/interview-questions', async (req, res) => {
   try {
     const { company, role, category, difficulty, search } = req.query;
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
 
-    let query = supabase
-      .from('interview_questions')
-      .select('*')
-      .order('upvotes', { ascending: false });
+    const hardcodedQuestions = [
+      { id: '1', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Given an array of integers, find the two numbers that add up to a target sum.', difficulty: 'Easy', tags: ['arrays', 'hash-map'], upvotes: 12 },
+      { id: '2', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Find the longest substring without repeating characters.', difficulty: 'Medium', tags: ['strings', 'sliding-window'], upvotes: 18 },
+      { id: '3', company: 'Google', role: 'Software Engineer', category: 'System Design', question: 'Design Google Search autocomplete system.', difficulty: 'Hard', tags: ['system-design', 'trie'], upvotes: 25 },
+      { id: '4', company: 'Google', role: 'Software Engineer', category: 'Behavioral', question: 'Tell me about a time you had a disagreement with a team member. How did you resolve it?', difficulty: 'Medium', tags: ['behavioral'], upvotes: 8 },
+      { id: '5', company: 'Google', role: 'ML Engineer', category: 'ML', question: 'Explain the difference between L1 and L2 regularization.', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 15 },
+      { id: '6', company: 'Amazon', role: 'Software Engineer', category: 'DSA', question: 'Given a linked list, reverse it in place.', difficulty: 'Easy', tags: ['linked-list'], upvotes: 10 },
+      { id: '7', company: 'Amazon', role: 'Software Engineer', category: 'System Design', question: 'Design Amazon shopping cart system.', difficulty: 'Hard', tags: ['system-design'], upvotes: 22 },
+      { id: '8', company: 'Amazon', role: 'Software Engineer', category: 'Behavioral', question: 'Describe a situation where you had to deliver results under tight deadlines.', difficulty: 'Medium', tags: ['behavioral', 'leadership'], upvotes: 9 },
+      { id: '9', company: 'Amazon', role: 'Data Scientist', category: 'ML', question: 'How would you handle imbalanced datasets in a classification problem?', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 14 },
+      { id: '10', company: 'Microsoft', role: 'Software Engineer', category: 'DSA', question: 'Implement a LRU Cache with O(1) get and put operations.', difficulty: 'Hard', tags: ['design', 'hash-map'], upvotes: 20 },
+      { id: '11', company: 'Microsoft', role: 'Software Engineer', category: 'Behavioral', question: 'Tell me about a project you are most proud of.', difficulty: 'Easy', tags: ['behavioral'], upvotes: 7 },
+      { id: '12', company: 'Microsoft', role: 'Data Analyst', category: 'SQL', question: 'Write a SQL query to find the second highest salary from an employee table.', difficulty: 'Medium', tags: ['sql'], upvotes: 16 },
+      { id: '13', company: 'TCS', role: 'Software Engineer', category: 'Technical', question: 'What is the difference between process and thread?', difficulty: 'Easy', tags: ['os'], upvotes: 11 },
+      { id: '14', company: 'TCS', role: 'Software Engineer', category: 'Technical', question: 'Explain ACID properties in databases.', difficulty: 'Medium', tags: ['database'], upvotes: 13 },
+      { id: '15', company: 'TCS', role: 'Software Engineer', category: 'HR', question: 'Why do you want to join TCS?', difficulty: 'Easy', tags: ['hr'], upvotes: 6 },
+      { id: '16', company: 'Infosys', role: 'Software Engineer', category: 'Technical', question: 'What is polymorphism? Give a real-world example.', difficulty: 'Easy', tags: ['oops'], upvotes: 10 },
+      { id: '17', company: 'Infosys', role: 'Software Engineer', category: 'Technical', question: 'Explain the difference between SQL and NoSQL databases.', difficulty: 'Medium', tags: ['database'], upvotes: 12 },
+      { id: '18', company: 'Wipro', role: 'Software Engineer', category: 'Technical', question: 'What is the difference between Stack and Queue?', difficulty: 'Easy', tags: ['data-structures'], upvotes: 8 },
+      { id: '19', company: 'Wipro', role: 'Software Engineer', category: 'HR', question: 'Where do you see yourself in 5 years?', difficulty: 'Easy', tags: ['hr'], upvotes: 5 },
+      { id: '20', company: 'Stripe', role: 'Software Engineer', category: 'DSA', question: 'Design a rate limiter for an API.', difficulty: 'Hard', tags: ['system-design'], upvotes: 19 },
+      { id: '21', company: 'Airbnb', role: 'Software Engineer', category: 'DSA', question: 'Given a list of flight itineraries, find the complete travel route.', difficulty: 'Hard', tags: ['graphs', 'dfs'], upvotes: 17 },
+      { id: '22', company: 'Flipkart', role: 'Software Engineer', category: 'DSA', question: 'Find the Kth largest element in an unsorted array.', difficulty: 'Medium', tags: ['arrays', 'heap'], upvotes: 14 },
+      { id: '23', company: 'Flipkart', role: 'Data Scientist', category: 'ML', question: 'How would you build a recommendation system for an e-commerce platform?', difficulty: 'Hard', tags: ['machine-learning'], upvotes: 21 },
+      { id: '24', company: 'Zomato', role: 'Software Engineer', category: 'System Design', question: 'Design Zomato real-time food delivery tracking system.', difficulty: 'Hard', tags: ['system-design', 'real-time'], upvotes: 23 },
+      { id: '25', company: 'Swiggy', role: 'Software Engineer', category: 'DSA', question: 'How would you assign delivery agents to orders to minimize total delivery time?', difficulty: 'Hard', tags: ['algorithms'], upvotes: 18 },
+      { id: '26', company: 'Accenture', role: 'Software Engineer', category: 'Technical', question: 'What is REST API and what are its principles?', difficulty: 'Easy', tags: ['api'], upvotes: 9 },
+      { id: '27', company: 'Cognizant', role: 'Software Engineer', category: 'Technical', question: 'Explain the concept of OOPS and its four pillars.', difficulty: 'Easy', tags: ['oops'], upvotes: 8 },
+      { id: '28', company: 'Amazon', role: 'ML Engineer', category: 'ML', question: 'How does gradient descent work? What are its variants?', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 16 },
+      { id: '29', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Given a binary tree, find the maximum path sum.', difficulty: 'Hard', tags: ['trees', 'dp'], upvotes: 20 },
+      { id: '30', company: 'Amazon', role: 'Software Engineer', category: 'System Design', question: 'Design a distributed key-value store like DynamoDB.', difficulty: 'Hard', tags: ['system-design'], upvotes: 24 },
+    ];
 
-    if (company && company !== 'All') query = query.eq('company', company);
-    if (role && role !== 'All') query = query.eq('role', role);
-    if (category && category !== 'All') query = query.eq('category', category);
-    if (difficulty && difficulty !== 'All') query = query.eq('difficulty', difficulty);
-    if (search) query = query.ilike('question', `%${search}%`);
+    let filtered = hardcodedQuestions;
+    if (company && company !== 'All') filtered = filtered.filter(q => q.company === company);
+    if (role && role !== 'All') filtered = filtered.filter(q => q.role === role);
+    if (category && category !== 'All') filtered = filtered.filter(q => q.category === category);
+    if (difficulty && difficulty !== 'All') filtered = filtered.filter(q => q.difficulty === difficulty);
+    if (search) filtered = filtered.filter(q => q.question.toLowerCase().includes(search.toLowerCase()));
 
-    const { data, error } = await query.limit(50);
-    if (error) throw error;
+    filtered.sort((a, b) => b.upvotes - a.upvotes);
 
-    res.json({ success: true, count: data.length, questions: data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post('/generate-interview-questions', async (req, res) => {
-  try {
-    const { company, role, category } = req.body;
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      messages: [{
-        role: 'user',
-        content: `Generate 10 realistic interview questions for:
-Company: ${company}
-Role: ${role}
-Category: ${category}
-
-Return ONLY a JSON array:
-[
-  {
-    "question": "Question text here",
-    "difficulty": "Easy/Medium/Hard",
-    "hint": "Brief hint or what to focus on",
-    "tags": ["tag1", "tag2"]
-  }
-]
-
-Make questions specific to ${company}'s interview style and ${role} requirements.`
-      }]
-    });
-
-    const text = message.content[0].text;
-    const clean = text.replace(/```json|```/g, '').trim();
-    const questions = JSON.parse(clean);
-    res.json({ success: true, questions });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post('/upvote-question', async (req, res) => {
-  try {
-    const { questionId } = req.body;
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-    const { data } = await supabase
-      .from('interview_questions')
-      .select('upvotes')
-      .eq('id', questionId)
-      .single();
-
-    await supabase
-      .from('interview_questions')
-      .update({ upvotes: (data?.upvotes || 0) + 1 })
-      .eq('id', questionId);
-
-    res.json({ success: true });
+    res.json({ success: true, count: filtered.length, questions: filtered });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
