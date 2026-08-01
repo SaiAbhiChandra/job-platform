@@ -848,53 +848,112 @@ router.post('/extract-resume-text', async (req, res) => {
   }
 });
 
-router.get('/interview-questions', async (req, res) => {
+router.post('/generate-interview-questions', async (req, res) => {
   try {
-    const { company, role, category, difficulty, search } = req.query;
+    const { company, role, category } = req.body;
 
-    const hardcodedQuestions = [
-      { id: '1', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Given an array of integers, find the two numbers that add up to a target sum.', difficulty: 'Easy', tags: ['arrays', 'hash-map'], upvotes: 12 },
-      { id: '2', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Find the longest substring without repeating characters.', difficulty: 'Medium', tags: ['strings', 'sliding-window'], upvotes: 18 },
-      { id: '3', company: 'Google', role: 'Software Engineer', category: 'System Design', question: 'Design Google Search autocomplete system.', difficulty: 'Hard', tags: ['system-design', 'trie'], upvotes: 25 },
-      { id: '4', company: 'Google', role: 'Software Engineer', category: 'Behavioral', question: 'Tell me about a time you had a disagreement with a team member. How did you resolve it?', difficulty: 'Medium', tags: ['behavioral'], upvotes: 8 },
-      { id: '5', company: 'Google', role: 'ML Engineer', category: 'ML', question: 'Explain the difference between L1 and L2 regularization.', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 15 },
-      { id: '6', company: 'Amazon', role: 'Software Engineer', category: 'DSA', question: 'Given a linked list, reverse it in place.', difficulty: 'Easy', tags: ['linked-list'], upvotes: 10 },
-      { id: '7', company: 'Amazon', role: 'Software Engineer', category: 'System Design', question: 'Design Amazon shopping cart system.', difficulty: 'Hard', tags: ['system-design'], upvotes: 22 },
-      { id: '8', company: 'Amazon', role: 'Software Engineer', category: 'Behavioral', question: 'Describe a situation where you had to deliver results under tight deadlines.', difficulty: 'Medium', tags: ['behavioral', 'leadership'], upvotes: 9 },
-      { id: '9', company: 'Amazon', role: 'Data Scientist', category: 'ML', question: 'How would you handle imbalanced datasets in a classification problem?', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 14 },
-      { id: '10', company: 'Microsoft', role: 'Software Engineer', category: 'DSA', question: 'Implement a LRU Cache with O(1) get and put operations.', difficulty: 'Hard', tags: ['design', 'hash-map'], upvotes: 20 },
-      { id: '11', company: 'Microsoft', role: 'Software Engineer', category: 'Behavioral', question: 'Tell me about a project you are most proud of.', difficulty: 'Easy', tags: ['behavioral'], upvotes: 7 },
-      { id: '12', company: 'Microsoft', role: 'Data Analyst', category: 'SQL', question: 'Write a SQL query to find the second highest salary from an employee table.', difficulty: 'Medium', tags: ['sql'], upvotes: 16 },
-      { id: '13', company: 'TCS', role: 'Software Engineer', category: 'Technical', question: 'What is the difference between process and thread?', difficulty: 'Easy', tags: ['os'], upvotes: 11 },
-      { id: '14', company: 'TCS', role: 'Software Engineer', category: 'Technical', question: 'Explain ACID properties in databases.', difficulty: 'Medium', tags: ['database'], upvotes: 13 },
-      { id: '15', company: 'TCS', role: 'Software Engineer', category: 'HR', question: 'Why do you want to join TCS?', difficulty: 'Easy', tags: ['hr'], upvotes: 6 },
-      { id: '16', company: 'Infosys', role: 'Software Engineer', category: 'Technical', question: 'What is polymorphism? Give a real-world example.', difficulty: 'Easy', tags: ['oops'], upvotes: 10 },
-      { id: '17', company: 'Infosys', role: 'Software Engineer', category: 'Technical', question: 'Explain the difference between SQL and NoSQL databases.', difficulty: 'Medium', tags: ['database'], upvotes: 12 },
-      { id: '18', company: 'Wipro', role: 'Software Engineer', category: 'Technical', question: 'What is the difference between Stack and Queue?', difficulty: 'Easy', tags: ['data-structures'], upvotes: 8 },
-      { id: '19', company: 'Wipro', role: 'Software Engineer', category: 'HR', question: 'Where do you see yourself in 5 years?', difficulty: 'Easy', tags: ['hr'], upvotes: 5 },
-      { id: '20', company: 'Stripe', role: 'Software Engineer', category: 'DSA', question: 'Design a rate limiter for an API.', difficulty: 'Hard', tags: ['system-design'], upvotes: 19 },
-      { id: '21', company: 'Airbnb', role: 'Software Engineer', category: 'DSA', question: 'Given a list of flight itineraries, find the complete travel route.', difficulty: 'Hard', tags: ['graphs', 'dfs'], upvotes: 17 },
-      { id: '22', company: 'Flipkart', role: 'Software Engineer', category: 'DSA', question: 'Find the Kth largest element in an unsorted array.', difficulty: 'Medium', tags: ['arrays', 'heap'], upvotes: 14 },
-      { id: '23', company: 'Flipkart', role: 'Data Scientist', category: 'ML', question: 'How would you build a recommendation system for an e-commerce platform?', difficulty: 'Hard', tags: ['machine-learning'], upvotes: 21 },
-      { id: '24', company: 'Zomato', role: 'Software Engineer', category: 'System Design', question: 'Design Zomato real-time food delivery tracking system.', difficulty: 'Hard', tags: ['system-design', 'real-time'], upvotes: 23 },
-      { id: '25', company: 'Swiggy', role: 'Software Engineer', category: 'DSA', question: 'How would you assign delivery agents to orders to minimize total delivery time?', difficulty: 'Hard', tags: ['algorithms'], upvotes: 18 },
-      { id: '26', company: 'Accenture', role: 'Software Engineer', category: 'Technical', question: 'What is REST API and what are its principles?', difficulty: 'Easy', tags: ['api'], upvotes: 9 },
-      { id: '27', company: 'Cognizant', role: 'Software Engineer', category: 'Technical', question: 'Explain the concept of OOPS and its four pillars.', difficulty: 'Easy', tags: ['oops'], upvotes: 8 },
-      { id: '28', company: 'Amazon', role: 'ML Engineer', category: 'ML', question: 'How does gradient descent work? What are its variants?', difficulty: 'Medium', tags: ['machine-learning'], upvotes: 16 },
-      { id: '29', company: 'Google', role: 'Software Engineer', category: 'DSA', question: 'Given a binary tree, find the maximum path sum.', difficulty: 'Hard', tags: ['trees', 'dp'], upvotes: 20 },
-      { id: '30', company: 'Amazon', role: 'Software Engineer', category: 'System Design', question: 'Design a distributed key-value store like DynamoDB.', difficulty: 'Hard', tags: ['system-design'], upvotes: 24 },
-    ];
+    // Try AI first
+    try {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: `Generate 8 realistic interview questions for ${role} at ${company} focusing on ${category}. Return ONLY a JSON array: [{"question":"...","difficulty":"Easy/Medium/Hard","hint":"brief tip","tags":["tag1"]}]`
+        }]
+      });
+      const text = message.content[0].text;
+      const clean = text.replace(/```json|```/g, '').trim();
+      const questions = JSON.parse(clean);
+      return res.json({ success: true, questions, source: 'AI' });
+    } catch (aiErr) {
+      console.log('AI unavailable, using question bank');
+    }
 
-    let filtered = hardcodedQuestions;
-    if (company && company !== 'All') filtered = filtered.filter(q => q.company === company);
-    if (role && role !== 'All') filtered = filtered.filter(q => q.role === role);
-    if (category && category !== 'All') filtered = filtered.filter(q => q.category === category);
-    if (difficulty && difficulty !== 'All') filtered = filtered.filter(q => q.difficulty === difficulty);
-    if (search) filtered = filtered.filter(q => q.question.toLowerCase().includes(search.toLowerCase()));
+    // Large pre-built question bank fallback
+    const questionBank = {
+      DSA: [
+        { question: `How would you optimize a search algorithm for ${company}'s scale of data?`, difficulty: 'Hard', hint: 'Think about binary search, hash maps, and distributed systems', tags: ['algorithms', 'optimization'] },
+        { question: 'Implement a function to detect a cycle in a linked list.', difficulty: 'Medium', hint: 'Use Floyd\'s cycle detection algorithm (slow and fast pointer)', tags: ['linked-list', 'two-pointers'] },
+        { question: 'Find the longest common subsequence of two strings.', difficulty: 'Hard', hint: 'Use dynamic programming with a 2D table', tags: ['dp', 'strings'] },
+        { question: 'Given a binary tree, check if it is balanced.', difficulty: 'Medium', hint: 'Calculate height recursively and check difference at each node', tags: ['trees', 'recursion'] },
+        { question: 'Implement a min-heap and explain its time complexity.', difficulty: 'Medium', hint: 'Use an array-based implementation with heapify operations', tags: ['heap', 'data-structures'] },
+        { question: 'Find all permutations of a given string.', difficulty: 'Medium', hint: 'Use backtracking to generate all combinations', tags: ['backtracking', 'strings'] },
+        { question: 'Given a matrix, find the shortest path from top-left to bottom-right.', difficulty: 'Medium', hint: 'Use BFS for unweighted, Dijkstra for weighted paths', tags: ['graphs', 'bfs'] },
+        { question: 'Merge K sorted linked lists into one sorted list.', difficulty: 'Hard', hint: 'Use a min-heap to efficiently merge', tags: ['linked-list', 'heap'] },
+      ],
+      'System Design': [
+        { question: `Design ${company}'s notification system that handles millions of users.`, difficulty: 'Hard', hint: 'Think message queues, push/pull architecture, rate limiting', tags: ['system-design', 'scalability'] },
+        { question: `How would you design a URL shortener like bit.ly for ${company}?`, difficulty: 'Medium', hint: 'Base62 encoding, database sharding, caching layer', tags: ['system-design', 'database'] },
+        { question: 'Design a distributed cache system like Redis.', difficulty: 'Hard', hint: 'Think consistent hashing, eviction policies, replication', tags: ['system-design', 'caching'] },
+        { question: 'How would you design a real-time chat system?', difficulty: 'Hard', hint: 'WebSockets, message queues, presence system', tags: ['system-design', 'real-time'] },
+        { question: 'Design a news feed system like Twitter/LinkedIn.', difficulty: 'Hard', hint: 'Fan-out vs fan-in, ranking algorithms, pagination', tags: ['system-design', 'feeds'] },
+        { question: 'How would you design a logging and monitoring system?', difficulty: 'Medium', hint: 'Think centralized logging, alerting, dashboards', tags: ['system-design', 'monitoring'] },
+        { question: 'Design an authentication system with OAuth2.', difficulty: 'Medium', hint: 'JWT tokens, refresh tokens, secure storage', tags: ['system-design', 'security'] },
+        { question: 'How would you design a recommendation engine?', difficulty: 'Hard', hint: 'Collaborative filtering, content-based, hybrid approaches', tags: ['system-design', 'ml'] },
+      ],
+      ML: [
+        { question: `How would you build an ML model to improve ${company}'s core product?`, difficulty: 'Hard', hint: 'Define problem, data collection, feature engineering, model selection, evaluation', tags: ['ml', 'product'] },
+        { question: 'Explain the bias-variance tradeoff and how to handle it.', difficulty: 'Medium', hint: 'High bias = underfitting, high variance = overfitting, use cross-validation', tags: ['ml', 'theory'] },
+        { question: 'How do you prevent overfitting in deep learning models?', difficulty: 'Medium', hint: 'Dropout, L1/L2 regularization, early stopping, data augmentation', tags: ['deep-learning', 'regularization'] },
+        { question: 'Explain how BERT works and when to use it.', difficulty: 'Hard', hint: 'Bidirectional transformer, pre-training tasks, fine-tuning', tags: ['nlp', 'transformers'] },
+        { question: 'How would you handle missing data in a dataset?', difficulty: 'Easy', hint: 'Imputation strategies: mean/median/mode, KNN imputer, model-based', tags: ['data-preprocessing', 'ml'] },
+        { question: 'What is the ROC curve and when is AUC useful?', difficulty: 'Medium', hint: 'TPR vs FPR at different thresholds, useful for imbalanced datasets', tags: ['ml', 'evaluation'] },
+        { question: 'Explain the difference between Random Forest and Gradient Boosting.', difficulty: 'Medium', hint: 'Bagging vs boosting, parallel vs sequential, variance vs bias reduction', tags: ['ml', 'ensemble'] },
+        { question: 'How do you evaluate a recommendation system?', difficulty: 'Hard', hint: 'Precision@K, Recall@K, NDCG, A/B testing, business metrics', tags: ['ml', 'recommendation'] },
+      ],
+      Behavioral: [
+        { question: `Why do you want to work at ${company} specifically?`, difficulty: 'Easy', hint: 'Research the company\'s mission, products, culture. Be specific not generic', tags: ['behavioral', 'motivation'] },
+        { question: 'Tell me about a time you failed and what you learned from it.', difficulty: 'Medium', hint: 'Use STAR method, show self-awareness and growth mindset', tags: ['behavioral', 'growth'] },
+        { question: 'Describe a time you had to learn something quickly under pressure.', difficulty: 'Medium', hint: 'Show resourcefulness, structured approach to learning', tags: ['behavioral', 'learning'] },
+        { question: 'Tell me about a project where you had to work with limited resources.', difficulty: 'Medium', hint: 'Prioritization, creativity, delivering value despite constraints', tags: ['behavioral', 'resourcefulness'] },
+        { question: 'How do you handle situations where you disagree with your manager?', difficulty: 'Hard', hint: 'Show professional communication, data-driven arguments, knowing when to escalate', tags: ['behavioral', 'leadership'] },
+        { question: 'Describe your most impactful technical contribution.', difficulty: 'Easy', hint: 'Quantify impact, explain technical decisions, team collaboration', tags: ['behavioral', 'impact'] },
+        { question: 'How do you prioritize tasks when everything seems urgent?', difficulty: 'Medium', hint: 'Frameworks: Eisenhower matrix, MoSCoW, stakeholder communication', tags: ['behavioral', 'prioritization'] },
+        { question: 'Tell me about a time you mentored or helped a colleague grow.', difficulty: 'Easy', hint: 'Show leadership, empathy, knowledge sharing', tags: ['behavioral', 'leadership'] },
+      ],
+      Technical: [
+        { question: `What technologies would you use to build ${company}'s core infrastructure?`, difficulty: 'Hard', hint: 'Consider scalability, reliability, maintainability, team expertise', tags: ['technical', 'architecture'] },
+        { question: 'Explain how HTTP/2 differs from HTTP/1.1.', difficulty: 'Medium', hint: 'Multiplexing, header compression, server push, binary protocol', tags: ['networking', 'web'] },
+        { question: 'What is the difference between authentication and authorization?', difficulty: 'Easy', hint: 'Auth = who you are, Authz = what you can do. JWT, OAuth, RBAC', tags: ['security', 'concepts'] },
+        { question: 'Explain microservices vs monolithic architecture.', difficulty: 'Medium', hint: 'Tradeoffs: scalability, complexity, deployment, team structure', tags: ['architecture', 'design'] },
+        { question: 'How does garbage collection work in your primary language?', difficulty: 'Medium', hint: 'Mark-and-sweep, generational GC, reference counting, memory management', tags: ['programming', 'memory'] },
+        { question: 'What is database indexing and when should you use it?', difficulty: 'Medium', hint: 'B-tree indexes, query optimization, tradeoffs with write performance', tags: ['database', 'optimization'] },
+        { question: 'Explain the CAP theorem in distributed systems.', difficulty: 'Hard', hint: 'Consistency, Availability, Partition Tolerance — can only guarantee 2', tags: ['distributed-systems', 'theory'] },
+        { question: 'What are SOLID principles and why do they matter?', difficulty: 'Medium', hint: 'Single responsibility, Open-closed, Liskov, Interface segregation, Dependency inversion', tags: ['design-patterns', 'oops'] },
+      ],
+      SQL: [
+        { question: 'Write a query to find employees who earn more than their manager.', difficulty: 'Medium', hint: 'Self join on employees table, compare salary columns', tags: ['sql', 'joins'] },
+        { question: 'Explain the difference between INNER JOIN and LEFT JOIN with examples.', difficulty: 'Easy', hint: 'INNER returns matching rows only, LEFT returns all from left table', tags: ['sql', 'joins'] },
+        { question: 'How would you find duplicate records in a table?', difficulty: 'Easy', hint: 'GROUP BY with HAVING COUNT(*) > 1', tags: ['sql', 'aggregation'] },
+        { question: 'Write a query to calculate running totals using window functions.', difficulty: 'Hard', hint: 'SUM() OVER (ORDER BY date) with ROWS BETWEEN clause', tags: ['sql', 'window-functions'] },
+        { question: 'What is query optimization and how do you improve slow queries?', difficulty: 'Medium', hint: 'EXPLAIN plan, indexes, avoid SELECT *, proper JOINs', tags: ['sql', 'optimization'] },
+        { question: 'Write a recursive CTE to traverse a hierarchical data structure.', difficulty: 'Hard', hint: 'WITH RECURSIVE, anchor member + recursive member', tags: ['sql', 'cte'] },
+        { question: 'Find the top 3 products by sales in each category.', difficulty: 'Medium', hint: 'ROW_NUMBER() or RANK() window function with PARTITION BY', tags: ['sql', 'window-functions'] },
+        { question: 'Explain ACID properties with real-world examples.', difficulty: 'Medium', hint: 'Atomicity, Consistency, Isolation, Durability — bank transfer example', tags: ['database', 'theory'] },
+      ],
+      HR: [
+        { question: 'Tell me about yourself and your journey to becoming a developer.', difficulty: 'Easy', hint: 'Keep it professional, highlight relevant skills, show passion', tags: ['hr', 'introduction'] },
+        { question: 'What are your salary expectations for this role?', difficulty: 'Medium', hint: 'Research market rates, give a range, show flexibility', tags: ['hr', 'negotiation'] },
+        { question: `What do you know about ${company} and our products?`, difficulty: 'Easy', hint: 'Research thoroughly — products, culture, recent news, mission', tags: ['hr', 'research'] },
+        { question: 'Where do you see yourself in 5 years?', difficulty: 'Easy', hint: 'Align with company growth, show ambition but be realistic', tags: ['hr', 'career'] },
+        { question: 'Why are you leaving your current job?', difficulty: 'Medium', hint: 'Stay positive, focus on growth opportunities not complaints', tags: ['hr', 'motivation'] },
+        { question: 'What is your greatest strength and how does it help in this role?', difficulty: 'Easy', hint: 'Choose something genuinely relevant with a specific example', tags: ['hr', 'strengths'] },
+        { question: 'Describe your ideal work environment.', difficulty: 'Easy', hint: 'Research company culture, align your answer authentically', tags: ['hr', 'culture'] },
+        { question: 'Do you have any questions for us?', difficulty: 'Easy', hint: 'Always ask 2-3 thoughtful questions about role, team, growth', tags: ['hr', 'engagement'] },
+      ],
+    };
 
-    filtered.sort((a, b) => b.upvotes - a.upvotes);
+    const selectedCategory = questionBank[category] || questionBank['DSA'];
+    const questions = selectedCategory.map(q => ({
+      ...q,
+      question: q.question.replace(/\$\{company\}/g, company).replace(/\$\{role\}/g, role),
+    }));
 
-    res.json({ success: true, count: filtered.length, questions: filtered });
+    res.json({ success: true, questions, source: 'question-bank' });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
