@@ -731,8 +731,8 @@ function Section({ title, accent, children }) {
 }
 
 const styles = {
-  page: { background: '#f8fafc', minHeight: '100vh', padding: '36px 20px' },
-  container: { maxWidth: '900px', margin: '0 auto' },
+  page: { background: '#f1f5f9', minHeight: '100vh', padding: '84px 20px 40px' },
+  container: { maxWidth: '960px', margin: '0 auto' },
   header: { textAlign: 'center', marginBottom: '28px' },
   aiBadge: { display: 'inline-block', background: '#ede9fe', color: '#6d28d9', padding: '6px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', marginBottom: '12px' },
   title: { fontSize: '32px', fontWeight: '800', color: '#0f172a', marginBottom: '10px', letterSpacing: '-0.5px' },

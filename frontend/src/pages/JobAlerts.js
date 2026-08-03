@@ -297,9 +297,9 @@ function JobAlerts() {
 
 const styles = {
   page: {
-    background: '#f8fafc',
+    background: '#f1f5f9',
     minHeight: '100vh',
-    padding: '36px 20px',
+    padding: '84px 20px 40px',
   },
   container: {
     maxWidth: '800px',

@@ -146,7 +146,7 @@ function Auth() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f8fafc',
+    background: '#f1f5f9',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

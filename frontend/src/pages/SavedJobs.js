@@ -113,9 +113,9 @@ function SavedJobs() {
 
 const styles = {
   page: {
-    background: '#f8fafc',
-    minHeight: '100vh',
-    padding: '36px 40px',
+    background: '#f1f5f9',
+    minHeight: '90vh',
+    padding: '84px 40px 40px',
   },
   header: {
     marginBottom: '28px',
